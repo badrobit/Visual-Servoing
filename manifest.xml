@@ -1,0 +1,29 @@
+<package>
+  <description brief="raw_visual_servoing">
+
+     raw_visual_servoing
+
+  </description>
+  <author>Mat Roscoe</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/raw_visual_servoing</url>
+
+  <depend package="sensor_msgs"/>
+  <depend package="opencv2"/>
+  <depend package="cv_bridge"/>
+  <depend package="roscpp"/>
+  <depend package="std_msgs"/>
+  <depend package="image_transport"/>
+  <depend package="geometry_msgs"/>
+  <depend package="std_srvs"/>
+  <depend package="arm_navigation_msgs"/>
+  <depend package="brics_actuator"/>
+
+  <depend package="cvblobs"/>
+
+  <depend package="hbrs_safe_cmd_vel"/>
+  <depend package="hbrs_srvs"/>
+</package>
+
+
