@@ -11,23 +11,22 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 
 rosbuild_init()
 
-#set the default path for built executables to the "bin" directory
+#..: Default Paths :..........................................................#
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-#set the default path for built libraries to the "lib" directory
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+include_directories(
+   ${PROJECT_SOURCE_DIR}/common/include
+   ${PROJECT_SOURCE_DIR}/ros/include
+)
 
 #uncomment if you have defined messages
 #rosbuild_genmsg()
 #uncomment if you have defined services
 #rosbuild_gensrv()
 
-#common commands for building c++ executables and libraries
-#rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
-#target_link_libraries(${PROJECT_NAME} another_library)
-#rosbuild_add_boost_directories()
-#rosbuild_link_boost(${PROJECT_NAME} thread)
-#rosbuild_add_executable(example examples/example.cpp)
-#target_link_libraries(example ${PROJECT_NAME})
-
-rosbuild_add_executable(visual_servoing_node src/visual_servoing.cpp)
+#..: Visual Seroving 2D Node :................................................#
+rosbuild_add_executable(visual_servoing_node ros/src/visual_servoing.cpp)
 target_link_libraries(visual_servoing_node cvblobs)
+
+#..: 3D Visual Servoing Library :.............................................#
+rosbuild_add_library( VisualServoing3D common/src/VisualServoing3D.cpp )
