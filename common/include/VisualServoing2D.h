@@ -42,8 +42,6 @@ public:
 	 */
 	VisualServoing2D( bool debugging,
 					  ros::ServiceClient safe_cmd_vel_service,
-					  ros::Publisher base_velocities_publisher,
-					  ros::Publisher arm_velocities_publisher,
 					  std::vector<std::string> arm_joint_names,
 					  std::vector<arm_navigation_msgs::JointLimits> arm_joint_limits );
 	/**
@@ -51,12 +49,13 @@ public:
 	 */
 	virtual ~VisualServoing2D();
 
-private:
 	/**
 	 * This function takes in a provided image and performs visual servoing on
 	 * the provided image. This
 	 */
 	bool VisualServoing( IplImage* input_image );
+
+private:
 
 	/**
 	 * This function takes in a given x offset in a standard Cartesian coordinate
@@ -86,6 +85,17 @@ private:
 	 */
 	IplImage* LoadBackgroundImage();
 
+	/**
+	 * This function creates the publishers that will publish velcities for both the robotic base
+	 * through the GeometryTwist message as well as for the arm based on the arm model.
+	 *
+	 * Arm Models:
+	 * 0 - Unknown.
+	 * 1 - KUKA YouBot Arm
+	 * 2 - KUKA Lightweight Arm.
+	 */
+	void CreatePublishers( int arm_model );
+
 protected:
 	/*
 	 * Global Variable.
@@ -111,6 +121,7 @@ protected:
 
 	ros::Publisher 									m_base_velocities_publisher;
 	ros::Publisher 									m_arm_velocities_publisher;
+	ros::NodeHandle 								m_node_handler;
 
 	ros::ServiceClient  							m_safe_cmd_vel_service;
 	hbrs_srvs::ReturnBool							m_service_msg;

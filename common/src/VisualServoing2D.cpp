@@ -9,8 +9,6 @@
 
 VisualServoing2D::VisualServoing2D( bool debugging,
 									ros::ServiceClient safe_cmd_vel_service,
-									ros::Publisher base_velocities_publisher,
-									ros::Publisher arm_velocities_publisher,
 									std::vector<std::string> arm_joint_names,
 									std::vector<arm_navigation_msgs::JointLimits> arm_joint_limits )
 {
@@ -24,13 +22,17 @@ VisualServoing2D::VisualServoing2D( bool debugging,
 
 	m_background_image = LoadBackgroundImage();
 
+	CreatePublishers( 1 );
+
 	m_arm_joint_names = arm_joint_names;
 	m_arm_joint_limits = arm_joint_limits;
 
 	m_safe_cmd_vel_service = safe_cmd_vel_service;
 
-	m_base_velocities_publisher = base_velocities_publisher;
-	m_arm_velocities_publisher = arm_velocities_publisher;
+	if( g_debugging )
+	{
+		ROS_INFO( "Debugging Enabled" );
+	}
 }
 
 VisualServoing2D::~VisualServoing2D()
@@ -38,6 +40,7 @@ VisualServoing2D::~VisualServoing2D()
 	cvDestroyWindow( "Original" );
 	cvDestroyWindow( "Thresholding" );
 	cvDestroyWindow( "Found Blobs" );
+	cvDestroyWindow( "Background Image" );
 }
 
 bool
@@ -201,7 +204,6 @@ VisualServoing2D::VisualServoing( IplImage* input_image )
 		cvPutText( blob_image, rot_str.c_str(), cvPoint( 350, blob_image->height - 10 ), &font, CV_RGB( 255, 0, 0 ) );
 
 		cvShowImage( "Found Blobs", blob_image );
-
 		cvShowImage( "Original Image", cv_image );
 		cvShowImage( "Gray Scale Image", gray );
 		cvSetZero( blob_image );
@@ -354,7 +356,7 @@ VisualServoing2D::ArmAdjustment( double rot_offset )
 			}
 
 			m_youbot_arm_velocities.velocities.push_back(joint_value);
-			m_arm_velocities_publisher.publish( m_youbot_arm_velocities );
+			//m_arm_velocities_publisher.publish( m_youbot_arm_velocities );
 		}
 	}
 }
@@ -365,15 +367,48 @@ VisualServoing2D::LoadBackgroundImage()
 	IplImage* background_image;
 	try
 	{
-	  std::string package_path = ros::package::getPath("raw_visual_servoing") + "/data/background.png";
+	  std::string package_path = ros::package::getPath("raw_visual_servoing") + "/common/data/background.png";
 	  std::cout << "Package Path:\t" << package_path.c_str() << std::endl;
 	  background_image = cvLoadImage( package_path.c_str() );
 	}
 	catch ( cv::Exception& e )
 	{
-		cvSet(background_image, cvScalar(0,0,0));
 		ROS_ERROR( "Could not load background image" );
 	}
 
+	if( g_debugging )
+	{
+		cvNamedWindow( "Background Image", CV_WINDOW_AUTOSIZE);
+		cvShowImage( "Background Image", background_image );
+		cvWaitKey( 10 );
+	}
+
 	return background_image;
+}
+
+void
+VisualServoing2D::CreatePublishers( int arm_model )
+{
+	// Set up the base velocities publisher:
+	m_base_velocities_publisher = m_node_handler.advertise<geometry_msgs::Twist>( "/cmd_vel_safe", 1 );
+
+	ROS_INFO( "Robot Base Publisher Setup" );
+
+	if( arm_model == 0 )
+	{
+		ROS_INFO( "The Visual Servoing cannot move the arm" );
+	}
+	else if( arm_model == 1 )
+	{
+		m_arm_velocities_publisher = m_node_handler.advertise<brics_actuator::JointVelocities>( "/arm_controller/velocity_command", 1 );
+		ROS_INFO( "KUKA YouBot Arm Publisher is set up" );
+	}
+	else if( arm_model == 2 )
+	{
+		ROS_ERROR( "KUKA Lightwieght Arm has not been implemented" );
+	}
+	else
+	{
+		ROS_ERROR( "Unkown robotic arm model provided" );
+	}
 }

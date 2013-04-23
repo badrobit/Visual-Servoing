@@ -33,14 +33,18 @@ public:
 	 * the visual seroving service so that the process can be started and stopped on command. If you
 	 * want to start the visual servoing you need to run the do_visual_servoing service hook.
 	 */
-	raw_visual_servoing( ros::NodeHandle &n ) : node_handler( n ),
-												image_transporter( node_handler ),
-												m_visual_servoing( true, safe_cmd_vel_service, base_velocities_publisher, arm_velocities_publisher, m_arm_joint_names, m_arm_joint_limits )
+	raw_visual_servoing( ros::NodeHandle &n ) : m_node_handler( n ),
+												image_transporter( n )
 	{
+		m_visual_servoing = new VisualServoing2D( true,
+												  safe_cmd_vel_service,
+												  m_arm_joint_names,
+												  m_arm_joint_limits );
+
 		SetupYoubotArm();
 
 		// Service commands to allow this node to be started and stopped externally
-		service_do_visual_serv = node_handler.advertiseService( "do_visual_servoing", &raw_visual_servoing::do_visual_servoing, this );
+		service_do_visual_serv = m_node_handler.advertiseService( "do_visual_servoing", &raw_visual_servoing::do_visual_servoing, this );
 		ROS_INFO( "Advertised 'do_visual_servoing' service for raw_visual_servoing" );
 
 		ROS_INFO( "Visual servoing node initialized." );
@@ -69,17 +73,17 @@ public:
 		// to close to the min or max value.
 		//image_subscriber = image_transporter.subscribe( "/joint_states", 1, &raw_visual_servoing::jointStateCallback, this );
 
-		safe_cmd_vel_service = node_handler.serviceClient<hbrs_srvs::ReturnBool>("/is_robot_to_close_to_obstacle");
+		safe_cmd_vel_service = m_node_handler.serviceClient<hbrs_srvs::ReturnBool>("/is_robot_to_close_to_obstacle");
 
 		// Velocity control for the YouBot base.
-		base_velocities_publisher = node_handler.advertise<geometry_msgs::Twist>( "/cmd_vel_safe", 1 );
+		base_velocities_publisher = m_node_handler.advertise<geometry_msgs::Twist>( "/cmd_vel_safe", 1 );
 
 		// Velocity Control for the YouBot arm.
-		arm_velocities_publisher = node_handler.advertise<brics_actuator::JointVelocities>( "/arm_controller/velocity_command", 1 );
+		//arm_velocities_publisher = node_handler.advertise<brics_actuator::JointVelocities>( "/arm_controller/velocity_command", 1 );
 
 		ros::Time start_time = ros::Time::now();
 
-		ROS_INFO("Blob Detection Enabled");
+		ROS_INFO("VisualServoing: Starting Blob Detection");
 
 		while( ( m_is_visual_servoing_completed == false ) && ros::ok() && ( (ros::Time::now() - start_time).toSec() < m_visual_servoing_timeout ) )
 		{
@@ -110,7 +114,7 @@ public:
 		// Shut down any open windows.
 		cvDestroyAllWindows();
 
-		ROS_INFO("Blob Detection Disabled");
+		ROS_INFO("VisualServoing: Blob Detection Completed");
 
 		return true;
 	}
@@ -144,7 +148,7 @@ private:
   void SetupYoubotArm()
   {
 	  XmlRpc::XmlRpcValue parameter_list;
-	  node_handler.getParam("/arm_controller/joints", parameter_list);
+	  m_node_handler.getParam("/arm_controller/joints", parameter_list);
 	  ROS_ASSERT(parameter_list.getType() == XmlRpc::XmlRpcValue::TypeArray);
 
 	  for (int32_t i = 0; i < parameter_list.size(); ++i)
@@ -158,8 +162,8 @@ private:
 	  {
 		arm_navigation_msgs::JointLimits joint_limits;
 		joint_limits.joint_name = m_arm_joint_names[i];
-		node_handler.getParam("/arm_controller/limits/" + m_arm_joint_names[i] + "/min", joint_limits.min_position);
-		node_handler.getParam("/arm_controller/limits/" + m_arm_joint_names[i] + "/max", joint_limits.max_position);
+		m_node_handler.getParam("/arm_controller/limits/" + m_arm_joint_names[i] + "/min", joint_limits.min_position);
+		m_node_handler.getParam("/arm_controller/limits/" + m_arm_joint_names[i] + "/max", joint_limits.max_position);
 		m_arm_joint_limits.push_back(joint_limits);
 	  }
   }
@@ -182,13 +186,18 @@ private:
   		{
   			ROS_ERROR( "Could not convert from '%s' to 'bgr8'.", image_message->encoding.c_str() );
   		}
+
+  		if( !m_visual_servoing->VisualServoing( cv_image ) )
+  		{
+  			ROS_ERROR( "Visual Servoing has failed" );
+  		}
   	}
 
 protected:
 
-  VisualServoing2D									m_visual_servoing;
+  VisualServoing2D*									m_visual_servoing;
 
-  ros::NodeHandle 									node_handler;
+  ros::NodeHandle 									m_node_handler;
   image_transport::ImageTransport 					image_transporter;
   image_transport::Subscriber 						m_image_subscriber;
 
@@ -214,7 +223,7 @@ protected:
  */
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "image_converter");
+  ros::init(argc, argv, "image_listener");
   ros::NodeHandle n;
   raw_visual_servoing ic(n);
   ros::spin();
