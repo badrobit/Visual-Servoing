@@ -96,6 +96,14 @@ private:
 	 */
 	void CreatePublishers( int arm_model );
 
+	/**
+	 * This is a function that will take in an arbitrary number of images and create a display for
+	 * them that will serve as the Heads Up Display (HUD) of the Visual Servoing Application.
+	 * This is a modified version of the source code found here:
+	 * http://opencv.willowgarage.com/wiki/DisplayManyImages
+	 */
+	void HUD(char* title, int nArgs, ...);
+
 protected:
 	/*
 	 * Global Variable.
@@ -131,8 +139,8 @@ protected:
 	/*
 	 * Constant values.
 	 */
-	const static int 								m_x_threshold = 35;
-	const static int 								m_y_threshold = 35;
+	const static int 								m_x_threshold = 20;
+	const static int 								m_y_threshold = 20;
 	const static int								m_min_blob_area = 1500;
 	const static int								m_max_blob_area = 57500;
 	const static int								m_image_height = 480;

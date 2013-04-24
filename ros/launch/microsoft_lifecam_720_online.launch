@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <launch>
     <!-- Start the usb webcam -->
-    <node pkg="usb_cam" type="usb_cam_node" name="usb_cam" output="screen" respawn="true">
-        <param name="video_device" type="string" value="/dev/youbot/microsoft_life_cam" />
+    <node pkg="usb_cam" type="usb_cam_node" name="usb_cam" respawn="true">
+        <param name="video_device" type="string" value="/dev/video0" />
         <param name="pixel_format"  value="yuyv" />
         <param name="image_width"   value="1280" /> 
         <param name="image_height"  value="720" />
