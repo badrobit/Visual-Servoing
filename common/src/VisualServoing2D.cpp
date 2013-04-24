@@ -306,6 +306,8 @@ VisualServoing2D::BaseAdjustmentY( double y_offset )
 void
 VisualServoing2D::ArmAdjustment( double rot_offset )
 {
+	//TODO: fix so that it doesn't screw up!
+
 	if( rot_offset != 90 || rot_offset != 270 )
 	{
 		double rotational_speed = 0.0;
@@ -445,7 +447,7 @@ VisualServoing2D::HUD(char* title, int nArgs, ...) {
     }
     else if (nArgs == 3 || nArgs == 4) {
         w = 2; h = 2;
-        size = 300;
+        size = 480;
     }
     else if (nArgs == 5 || nArgs == 6) {
         w = 3; h = 2;
@@ -461,7 +463,7 @@ VisualServoing2D::HUD(char* title, int nArgs, ...) {
     }
 
     // Create a new 3 channel image
-    DispImage = cvCreateImage( cvSize(100 + size*w, 60 + size*h), 8, 3 );
+    DispImage = cvCreateImage( cvSize( 50 + size*w, 60 + size*h), 8, 3 );
 
     // Used to get the arguments passed
     va_list args;
