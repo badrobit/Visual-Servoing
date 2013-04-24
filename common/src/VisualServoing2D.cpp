@@ -176,6 +176,7 @@ VisualServoing2D::VisualServoing( IplImage* input_image )
 	if( m_done_base_x_adjustment == true && m_done_base_y_adjustment == true && m_done_arm_rot_adjustment == true )
 	{
 		m_blob_detection_completed = true;
+		return true;
 		ROS_INFO( "Visual Servoing Completed." );
 	}
 
@@ -218,8 +219,6 @@ VisualServoing2D::VisualServoing( IplImage* input_image )
 	cvReleaseImage( &gray );
 	cvReleaseImage( &blob_image );
 	cvReleaseImage( &temp_img );
-
-	return true;
 }
 
 void

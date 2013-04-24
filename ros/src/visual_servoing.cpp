@@ -187,10 +187,7 @@ private:
   			ROS_ERROR( "Could not convert from '%s' to 'bgr8'.", image_message->encoding.c_str() );
   		}
 
-  		if( !m_visual_servoing->VisualServoing( cv_image ) )
-  		{
-  			ROS_ERROR( "Visual Servoing has failed" );
-  		}
+  		m_is_visual_servoing_completed = m_visual_servoing->VisualServoing( cv_image );
   	}
 
 protected:
