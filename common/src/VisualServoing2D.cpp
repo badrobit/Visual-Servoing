@@ -9,8 +9,7 @@
 
 VisualServoing2D::VisualServoing2D( bool debugging,
 									ros::ServiceClient safe_cmd_vel_service,
-									std::vector<std::string> arm_joint_names,
-									std::vector<arm_navigation_msgs::JointLimits> arm_joint_limits )
+									std::vector<std::string> arm_joint_names )
 {
 	g_debugging = debugging;
 
@@ -25,7 +24,6 @@ VisualServoing2D::VisualServoing2D( bool debugging,
 	CreatePublishers( 1 );
 
 	m_arm_joint_names = arm_joint_names;
-	m_arm_joint_limits = arm_joint_limits;
 
 	m_safe_cmd_vel_service = safe_cmd_vel_service;
 

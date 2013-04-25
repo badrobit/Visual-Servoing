@@ -42,8 +42,7 @@ public:
 	 */
 	VisualServoing2D( bool debugging,
 					  ros::ServiceClient safe_cmd_vel_service,
-					  std::vector<std::string> arm_joint_names,
-					  std::vector<arm_navigation_msgs::JointLimits> arm_joint_limits );
+					  std::vector<std::string> arm_joint_names );
 	/**
 	 * Standard C++ destructor method.
 	 */
@@ -125,7 +124,6 @@ protected:
 	geometry_msgs::Twist 							m_youbot_base_velocities;
 	brics_actuator::JointVelocities 				m_youbot_arm_velocities;
 	std::vector<std::string> 						m_arm_joint_names;
-	std::vector<arm_navigation_msgs::JointLimits> 	m_arm_joint_limits;
 
 	ros::Publisher 									m_base_velocities_publisher;
 	ros::Publisher 									m_arm_velocities_publisher;

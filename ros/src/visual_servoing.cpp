@@ -13,6 +13,9 @@
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 #include <cv_bridge/CvBridge.h>
+#include <sensor_msgs/JointState.h>
+#include <kdl/kdl.hpp>
+#include <kdl/chainiksolvervel_wdls.hpp>
 
 #include <std_srvs/Empty.h>
 #include <hbrs_srvs/ReturnBool.h>
@@ -38,8 +41,7 @@ public:
 	{
 		m_visual_servoing = new VisualServoing2D( true,
 												  safe_cmd_vel_service,
-												  m_arm_joint_names,
-												  m_arm_joint_limits );
+												  m_arm_joint_names );
 
 		SetupYoubotArm();
 
@@ -66,12 +68,12 @@ public:
 	{
 		m_is_visual_servoing_completed = false;
 
-		//  Incoming message from raw_usb_cam. This must be running in order for this ROS node to run.
+		//  Incoming message from raw_usbs_cam. This must be running in order for this ROS node to run.
 		m_image_subscriber = image_transporter.subscribe( "/usb_cam/image_raw", 1, &raw_visual_servoing::imageCallback, this );
 
 		// get joint states and store them to a variable and go through them (arm_link_5) and check to see if the current state is
 		// to close to the min or max value.
-		//image_subscriber = image_transporter.subscribe( "/joint_states", 1, &raw_visual_servoing::jointStateCallback, this );
+		m_sub_joint_states = m_node_handler.subscribe( "/joint_states", 1, &raw_visual_servoing::jointstateCallback, this );
 
 		safe_cmd_vel_service = m_node_handler.serviceClient<hbrs_srvs::ReturnBool>("/is_robot_to_close_to_obstacle");
 
@@ -162,7 +164,9 @@ private:
 		joint_limits.joint_name = m_arm_joint_names[i];
 		m_node_handler.getParam("/arm_controller/limits/" + m_arm_joint_names[i] + "/min", joint_limits.min_position);
 		m_node_handler.getParam("/arm_controller/limits/" + m_arm_joint_names[i] + "/max", joint_limits.max_position);
-		m_arm_joint_limits.push_back(joint_limits);
+		//m_arm_joint_limits.push_back(joint_limits);
+		m_upper_joint_limits.push_back( joint_limits.max_position );
+		m_lower_joint_limits.push_back( joint_limits.min_position );
 	  }
   }
 
@@ -186,7 +190,54 @@ private:
   		}
 
   		m_is_visual_servoing_completed = m_visual_servoing->VisualServoing( cv_image );
+  		m_is_visual_servoing_completed = checkLimits( m_joint_positions );
   	}
+
+  void jointstateCallback( sensor_msgs::JointStateConstPtr joints )
+  {
+
+  	for (unsigned i = 0; i < joints->position.size(); i++) {
+
+  		const char* joint_uri = joints->name[i].c_str();
+
+  		for (unsigned int j = 0; j < m_arm_chain.getNrOfJoints(); j++) {
+  			const char* chainjoint =
+  					m_arm_chain.getSegment(j).getJoint().getName().c_str();
+
+  			if (chainjoint != 0 && strcmp(chainjoint, joint_uri) == 0) {
+  				m_joint_positions.data[j] = joints->position[i];
+  				m_joint_positions_initialized[j] = true;
+  			}
+  		}
+  	}
+  }
+
+  bool
+  checkLimits( KDL::JntArray joint_positions )
+  {
+	  const double joint_threshold = 0.05;
+
+	  if( m_upper_joint_limits.size() < m_arm_chain.getNrOfJoints() ||
+		  m_lower_joint_limits.size() < m_arm_chain.getNrOfJoints())
+	  {
+		  ROS_ERROR( "No Joint Limits Defined" );
+		  return false;
+	  }
+
+	  for( unsigned int x = 0; x < m_arm_chain.getNrOfJoints(); x++)
+	  {
+		  double diff_up = fabs( (double)joint_positions.data(x) - m_upper_joint_limits[x] );
+		  double diff_dn = fabs( (double)joint_positions.data(x) - m_lower_joint_limits[x] );
+
+		  if( diff_up < joint_threshold || diff_dn < joint_threshold )
+		  {
+			  ROS_ERROR( "Joint soft-limit reached" );
+			  return false;
+		  }
+	  }
+	  ROS_INFO( "Joint states okay" );
+	  return true;
+  }
 
 protected:
 
@@ -201,15 +252,21 @@ protected:
   ros::Publisher								 	base_velocities_publisher;
   ros::Publisher 									arm_velocities_publisher;
 
+  ros::Subscriber 									m_sub_joint_states;
+
   std::vector<std::string> 							m_arm_joint_names;
-  std::vector<arm_navigation_msgs::JointLimits> 	m_arm_joint_limits;
-  brics_actuator::JointVelocities 					youbot_arm_velocities;
+  std::vector<double> 								m_upper_joint_limits;
+  std::vector<double> 								m_lower_joint_limits;
+  KDL::JntArray 									m_joint_positions;
+  std::vector<bool> 								m_joint_positions_initialized;
 
   ros::ServiceServer 								service_do_visual_serv;
 
   bool 												m_is_visual_servoing_completed;
 
   const static int 									m_visual_servoing_timeout = 30;
+
+  KDL::Chain 										m_arm_chain;
 };
 
 /**
