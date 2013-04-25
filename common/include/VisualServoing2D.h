@@ -76,7 +76,7 @@ private:
 	 * has been previously determined and will use it to determine how the arm
 	 * should be moved in order to account for the difference.
 	 */
-	void ArmAdjustment( double rot_offset );
+	bool ArmAdjustment( double orientation );
 
 	/**
 	 * This function loads in the background image that will be subtracted from the incoming image
@@ -139,8 +139,6 @@ protected:
 	/*
 	 * Constant values.
 	 */
-	const static int 								m_x_threshold = 20;
-	const static int 								m_y_threshold = 20;
 	const static int								m_min_blob_area = 1500;
 	const static int								m_max_blob_area = 57500;
 	const static int								m_image_height = 480;
@@ -149,6 +147,15 @@ protected:
 	const static double 							m_x_velocity = 0.005;
 	const static double 							m_y_velocity = 0.005;
 	const static double 							m_rot_velocity = 0.2;
+
+	const static int								m_x_target = 0;
+	const static int 								m_x_threshold = 30;
+
+	const static int								m_y_target = 0;
+	const static int 								m_y_threshold = 30;
+
+	const static int								m_rot_target = 90;
+	const static int								m_rot_tolerance = 5;
 };
 
 #endif /* VISUALSERVOING2D_H_ */

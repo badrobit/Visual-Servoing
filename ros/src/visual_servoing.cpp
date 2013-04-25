@@ -114,8 +114,6 @@ public:
 		// Shut down any open windows.
 		cvDestroyAllWindows();
 
-		ROS_INFO("VisualServoing: Blob Detection Completed");
-
 		return true;
 	}
 

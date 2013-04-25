@@ -166,6 +166,10 @@ VisualServoing2D::VisualServoing( IplImage* input_image )
 	x_offset = ( m_tracked_x ) - ( m_image_width / 2 );
 	y_offset = ( m_tracked_y ) - ( (m_image_height/2) + m_verticle_offset );
 	rot_offset = get_orientation( temp_tracked_blob );
+	if( rot_offset > 180 )
+	{
+	  rot_offset = rot_offset - 180;
+	}
 
 	BaseAdjustmentX( x_offset );
 	BaseAdjustmentY( y_offset );
@@ -219,103 +223,163 @@ VisualServoing2D::VisualServoing( IplImage* input_image )
 void
 VisualServoing2D::BaseAdjustmentX( double x_offset )
 {
-	if( x_offset != 0 )
+	double move_speed = 0.0;
+
+	if( x_offset > m_x_threshold )
 	{
-		double move_speed = 0.0;
-
-		// added a buffer for a "good enough" region of interest. [14.06.2012]
-		if( x_offset >= m_x_threshold )
-		{
-			// move the robot base right
-			move_speed = -m_x_velocity;
-			m_done_base_x_adjustment = false;
-		}
-		else if( x_offset <= -m_x_threshold )
-		{
-			// move the robot left
-			move_speed = m_x_velocity;
-			m_done_base_x_adjustment = false;
-		}
-		else if( x_offset > -m_x_threshold && x_offset < m_x_threshold )
-		{
-			move_speed = 0.0;
-			m_done_base_x_adjustment = true;
-		}
-		else
-		{
-			// should never happen but just in case.
-			move_speed = 0.0;
-		}
-
-		// Prepare and then send the base movement commands.
-		m_youbot_base_velocities.linear.y = move_speed;
-		m_base_velocities_publisher.publish( m_youbot_base_velocities );
+		// move the robot base right
+		move_speed = -m_x_velocity;
+		m_done_base_x_adjustment = false;
 	}
+	else if( x_offset < -m_x_threshold )
+	{
+		// move the robot left
+		move_speed = m_x_velocity;
+		m_done_base_x_adjustment = false;
+	}
+	else if( fabs( x_offset ) < m_x_threshold )
+	{
+		move_speed = 0.0;
+		m_done_base_x_adjustment = true;
+		ROS_INFO( "Base Adjustment in X Finished" );
+	}
+	else
+	{
+		// should never happen but just in case.
+		move_speed = 0.0;
+	}
+
+	// Prepare and then send the base movement commands.
+	m_youbot_base_velocities.linear.y = move_speed;
+	m_base_velocities_publisher.publish( m_youbot_base_velocities );
 }
 
 void
 VisualServoing2D::BaseAdjustmentY( double y_offset )
 {
-	if( y_offset != 0 )
+	double move_speed = 0.0;
+
+	if( !m_safe_cmd_vel_service.call( m_service_msg ) )
 	{
-		double move_speed = 0.0;
+		ROS_ERROR( "Visual Servoing call to is_robot_to_close_to_obstacle has failed" );
+		m_service_msg.response.value = false;
+	}
 
-		if( !m_safe_cmd_vel_service.call( m_service_msg ) )
-		{
-			ROS_ERROR( "Visual Servoing call to is_robot_to_close_to_obstacle has failed" );
-			m_service_msg.response.value = true;
-		}
+	if( y_offset >= m_y_threshold )
+	{
+		// move the robot base right
+		move_speed = -m_y_velocity;
+		m_done_base_y_adjustment = false;
+	}
+	else if( y_offset <= -m_y_threshold )
+	{
+		// move the robot left
+		move_speed = m_y_velocity;
+		m_done_base_y_adjustment = false;
+	}
+	else if( fabs( y_offset ) < m_y_threshold )
+	{
+		move_speed = 0.0;
+		m_done_base_y_adjustment = true;
+		ROS_INFO( "Base Adjustment in Y Finished" );
+	}
+	else if( m_service_msg.response.value == true )
+	{
+		// This will only be set when the safe_cmd_vel is telling us that it cannot
+		//  allow for movement any longer in this direction.
+		move_speed = 0.0;
+		m_done_base_y_adjustment = true;
+		ROS_INFO( "Base Adjustment in Y Finished" );
+	}
+	else
+	{
+		// should never happen but just in case.
+		m_done_base_y_adjustment = true;
+		move_speed = 0.0;
+	}
 
-		if( y_offset >= m_y_threshold )
+	// Prepare and then send the base movement commands.
+	m_youbot_base_velocities.linear.x = move_speed;
+	m_base_velocities_publisher.publish( m_youbot_base_velocities );
+}
+
+bool
+VisualServoing2D::ArmAdjustment( double orientation )
+{
+	double difference = fabs( orientation - m_rot_target );
+	double rotational_speed = 0.0;
+
+
+	if( orientation > m_rot_target && difference > m_rot_tolerance )
+	{
+		/**
+		 * We are not to far to the right of the object and our difference is not small enough yet.
+		 */
+		rotational_speed = m_rot_velocity;
+		m_done_arm_rot_adjustment = false;
+	}
+	else if( orientation < m_rot_target && difference > m_rot_tolerance )
+	{
+		/**
+		 * we are to far to the left of the object and our difference is still to large.
+		 */
+		rotational_speed = -m_rot_velocity;
+		m_done_arm_rot_adjustment = false;
+	}
+	else if( difference < m_rot_tolerance )
+	{
+		rotational_speed = 0.0;
+		m_done_arm_rot_adjustment = true;
+		ROS_INFO( "Arm Rotation Finished" );
+	}
+	else
+	{
+		/**
+		 * We should never arrive at this state but just encase.
+		 */
+		ROS_ERROR( "SHIT WENT WRONG!" );
+		m_done_arm_rot_adjustment = false;
+	}
+
+	ROS_INFO( "Orientation\t%f", orientation );
+	ROS_INFO( "Difference\t%f", difference );
+
+	/**
+	 * we need to loop though all of the joint states because we need to set anything we do not want
+	 * to move to 0. If we do not do this we could get uncontrolled movements from values that it
+	 * had previously been sent.
+	 */
+	m_youbot_arm_velocities.velocities.clear();
+	for(unsigned int i=0; i < m_arm_joint_names.size(); ++i)
+	{
+		brics_actuator::JointValue joint_value;
+
+		joint_value.timeStamp = ros::Time::now();
+		joint_value.joint_uri = m_arm_joint_names[i];
+		joint_value.unit = to_string(boost::units::si::radian_per_second);
+
+		if( i == 4 )
 		{
-			// move the robot base right
-			move_speed = -m_y_velocity;
-			m_done_base_y_adjustment = false;
-		}
-		else if( y_offset <= -m_y_threshold )
-		{
-			// move the robot left
-			move_speed = m_y_velocity;
-			m_done_base_y_adjustment = false;
-		}
-		else if( y_offset > -m_y_threshold && y_offset < m_y_threshold )
-		{
-			move_speed = 0.0;
-			m_done_base_y_adjustment = true;
-		}
-		else if( m_service_msg.response.value == true )
-		{
-			// This will only be set when the safe_cmd_vel is telling us that it cannot
-			//  allow for movement any longer in this direction.
-			move_speed = 0.0;
-			m_done_base_y_adjustment = true;
+		  joint_value.value = rotational_speed;
 		}
 		else
 		{
-			// should never happen but just in case.
-			m_done_base_y_adjustment = true;
-			move_speed = 0.0;
+		  joint_value.value = 0.0;
 		}
 
-		// Prepare and then send the base movement commands.
-		m_youbot_base_velocities.linear.x = move_speed;
-		m_base_velocities_publisher.publish( m_youbot_base_velocities );
+		m_youbot_arm_velocities.velocities.push_back(joint_value);
+		//m_arm_velocities_publisher.publish( m_youbot_arm_velocities );
 	}
-}
 
-void
-VisualServoing2D::ArmAdjustment( double rot_offset )
-{
-	//TODO: fix so that it doesn't screw up!
+	return m_done_arm_rot_adjustment;
 
+
+	/*
 	if( rot_offset != 90 || rot_offset != 270 )
 	{
 		double rotational_speed = 0.0;
 
-		if( rot_offset > 180 )
-		{
-		  rot_offset = rot_offset - 180;
-		}
+
 
 		if( ( rot_offset < 85 && rot_offset >= 0 ) || ( rot_offset < 265 && rot_offset >= 235 ) )
 		{
@@ -355,6 +419,7 @@ VisualServoing2D::ArmAdjustment( double rot_offset )
 			//m_arm_velocities_publisher.publish( m_youbot_arm_velocities );
 		}
 	}
+	*/
 }
 
 IplImage*
@@ -447,7 +512,7 @@ VisualServoing2D::HUD(char* title, int nArgs, ...) {
     }
     else if (nArgs == 3 || nArgs == 4) {
         w = 2; h = 2;
-        size = 480;
+        size = 300;
     }
     else if (nArgs == 5 || nArgs == 6) {
         w = 3; h = 2;
