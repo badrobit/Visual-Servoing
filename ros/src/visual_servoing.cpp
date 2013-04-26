@@ -109,6 +109,8 @@ public:
 		{
 			ROS_INFO( "Visual Servoing Sucessful." );
 			res.value = true;
+			geometry_msgs::Twist zero_vel;
+			base_velocities_publisher.publish(zero_vel);
 		}
 		else
 		{
@@ -227,8 +229,7 @@ private:
   	}
   }
 
-  bool
-  checkLimits( KDL::JntArray joint_positions )
+  bool checkLimits( KDL::JntArray joint_positions )
   {
 	  const double joint_threshold = 0.05;
 
