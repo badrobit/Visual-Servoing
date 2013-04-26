@@ -94,8 +94,18 @@ VisualServoing2D::VisualServoing( IplImage* input_image )
 	 */
 	if( g_operating_mode == 1 )
 	{
-		cv_image = RegionOfInterest( input_image, 0.7 );
+		//cv_image = RegionOfInterest( input_image, 0.7 );
+		ROS_INFO( "ROI" );
+		cv_image = input_image;
 	}
+	else
+	{
+		cv_image = input_image;
+	}
+
+	m_image_height = cv_image->height;
+	m_image_width = cv_image->width;
+
 
 	// TODO: Modify the program so that it can still run without a background image!
 	IplImage* background_threshold = cvCreateImage( cvGetSize( m_background_image ), 8, 1 );

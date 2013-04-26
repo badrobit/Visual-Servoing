@@ -130,6 +130,9 @@ protected:
 	bool 											m_done_arm_rot_adjustment;
 	bool 											m_blob_detection_completed;
 
+	int												m_image_height;
+	int												m_image_width;
+
 	double 											m_tracked_x;
 	double 											m_tracked_y;
 
@@ -151,8 +154,6 @@ protected:
 	 */
 	const static int								m_min_blob_area = 75000;
 	const static int								m_max_blob_area = 200000;
-	const static int								m_image_height = 480;
-	const static int								m_image_width = 640;
 	const static int 								m_verticle_offset = 40;
 	const static double 							m_x_velocity = 0.005;
 	const static double 							m_y_velocity = 0.005;
