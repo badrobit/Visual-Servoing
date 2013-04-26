@@ -8,10 +8,12 @@
 #include "VisualServoing2D.h"
 
 VisualServoing2D::VisualServoing2D( bool debugging,
+									int mode,
 									ros::ServiceClient safe_cmd_vel_service,
 									std::vector<std::string> arm_joint_names )
 {
 	g_debugging = debugging;
+	g_operating_mode = mode;
 
 	m_first_pass = true;
 	m_done_base_x_adjustment = true;
@@ -30,6 +32,18 @@ VisualServoing2D::VisualServoing2D( bool debugging,
 	if( g_debugging )
 	{
 		ROS_INFO( "Debugging Enabled" );
+		if( g_operating_mode == 0 )
+		{
+			ROS_INFO( "Normal Visual Servoing" );
+		}
+		else if( g_operating_mode == 1 )
+		{
+			ROS_INFO( "Conveyer Belt Mode" );
+		}
+		else
+		{
+			ROS_ERROR( "BAD MODE" );
+		}
 	}
 }
 
@@ -66,12 +80,21 @@ VisualServoing2D::VisualServoing( IplImage* input_image )
 	double dist_y;
 	double distance;
 
-	// Covert the image from a ROS image message to a OpenCV Image (IplImage) type.
-	cv_image = input_image;
-	if( !cv_image )
+	if( !input_image )
 	{
 		ROS_ERROR( "Error in input image!" );
 		return false;
+	}
+
+	/**
+	 * In order to make Visual Servoing useful during the conveyer belt tests we need to ensure that
+	 * we are able to focus only on the conveyer belt. For this reason we will resize the image so
+	 * that we are looking only at a region of interest instead of the whole image.
+	 *
+	 */
+	if( g_operating_mode == 1 )
+	{
+		cv_image = RegionOfInterest( input_image, 0.7 );
 	}
 
 	// TODO: Modify the program so that it can still run without a background image!
@@ -424,9 +447,24 @@ IplImage*
 VisualServoing2D::LoadBackgroundImage()
 {
 	IplImage* background_image;
+	std::string mode;
+
+	if( g_operating_mode == 0 )
+	{
+		mode = "background.png";
+	}
+	else if( g_operating_mode == 1 )
+	{
+		mode = "conveyer_background.png";
+	}
+	else
+	{
+		ROS_ERROR( "Improper Mode (background)" );
+	}
+
 	try
 	{
-	  std::string package_path = ros::package::getPath("raw_visual_servoing") + "/common/data/background.png";
+	  std::string package_path = ros::package::getPath("raw_visual_servoing") + "/common/data/" + mode;
 	  std::cout << "Package Path:\t" << package_path.c_str() << std::endl;
 	  background_image = cvLoadImage( package_path.c_str() );
 	}
@@ -436,6 +474,31 @@ VisualServoing2D::LoadBackgroundImage()
 	}
 
 	return background_image;
+}
+
+IplImage*
+VisualServoing2D::RegionOfInterest( IplImage* input_image, double scale )
+{
+	if( scale <= 0 || scale >= 1 )
+	{
+		ROS_ERROR( "Invalid scale provided setting to 0.7" );
+		scale = 0.7;
+	}
+
+	int width = (int)(input_image->width * scale );
+	int height = (int)( input_image->height * scale );
+
+	int x = ( (input_image->width - width) / 2 );
+	int y = ( (input_image->height - height) / 2 );
+
+	cvSetImageROI( input_image, cvRect( x, y, width, height ) );
+
+	if( g_debugging )
+	{
+
+	}
+
+	return input_image;
 }
 
 void

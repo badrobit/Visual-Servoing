@@ -39,7 +39,19 @@ public:
 	raw_visual_servoing( ros::NodeHandle &n ) : m_node_handler( n ),
 												image_transporter( n )
 	{
+		ros::NodeHandle temp( "~" );
+
+		int mode = 0;
+
+		 if( temp.getParam("operating_mode", mode) == false)
+		 {
+			 ROS_WARN("Parameter \"operating_mode\" not available on parameter server, use default value: %d ", mode);
+		 }
+
+
+
 		m_visual_servoing = new VisualServoing2D( true,
+												  mode,
 												  safe_cmd_vel_service,
 												  m_arm_joint_names );
 
@@ -190,9 +202,12 @@ private:
   		}
 
   		m_is_visual_servoing_completed = m_visual_servoing->VisualServoing( cv_image );
-  		m_is_visual_servoing_completed = checkLimits( m_joint_positions );
+  		//m_is_visual_servoing_completed = checkLimits( m_joint_positions );
   	}
 
+  /**
+   * This function is a call back that updates the current positions of the
+   */
   void jointstateCallback( sensor_msgs::JointStateConstPtr joints )
   {
 

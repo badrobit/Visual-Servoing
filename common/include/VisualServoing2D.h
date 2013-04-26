@@ -39,8 +39,13 @@ public:
 	/**
 	 * This is the constructor for the 2D Visual Servoing system that sets up all of the
 	 * variables that the visual servoing system requires in order to function correctly.
+	 *
+	 * Modes:
+	 * 0 - Standard Visual Servoing
+	 * 1 - Conveyer Belt Visual Servoing
 	 */
 	VisualServoing2D( bool debugging,
+					  int mode,
 					  ros::ServiceClient safe_cmd_vel_service,
 					  std::vector<std::string> arm_joint_names );
 	/**
@@ -96,6 +101,12 @@ private:
 	void CreatePublishers( int arm_model );
 
 	/**
+	 * This function takes in an image and it crops it so that it is done according to the provided
+	 * scaling factor from (0.0 - 1.0).
+	 */
+	IplImage* RegionOfInterest( IplImage* input_image, double scale );
+
+	/**
 	 * This is a function that will take in an arbitrary number of images and create a display for
 	 * them that will serve as the Heads Up Display (HUD) of the Visual Servoing Application.
 	 * This is a modified version of the source code found here:
@@ -108,6 +119,7 @@ protected:
 	 * Global Variable.
 	 */
 	bool 											g_debugging;
+	int												g_operating_mode;
 
 	/*
 	 * Modifiable Class Level Variables.
@@ -137,8 +149,8 @@ protected:
 	/*
 	 * Constant values.
 	 */
-	const static int								m_min_blob_area = 1500;
-	const static int								m_max_blob_area = 57500;
+	const static int								m_min_blob_area = 75000;
+	const static int								m_max_blob_area = 200000;
 	const static int								m_image_height = 480;
 	const static int								m_image_width = 640;
 	const static int 								m_verticle_offset = 40;
@@ -147,10 +159,10 @@ protected:
 	const static double 							m_rot_velocity = 0.2;
 
 	const static int								m_x_target = 0;
-	const static int 								m_x_threshold = 30;
+	const static int 								m_x_threshold = 20;
 
 	const static int								m_y_target = 0;
-	const static int 								m_y_threshold = 30;
+	const static int 								m_y_threshold = 40;
 
 	const static int								m_rot_target = 90;
 	const static int								m_rot_tolerance = 5;
