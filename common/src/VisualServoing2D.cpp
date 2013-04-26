@@ -92,7 +92,7 @@ VisualServoing2D::VisualServoing( IplImage* input_image )
 	 * that we are looking only at a region of interest instead of the whole image.
 	 *
 	 */
-	if( g_operating_mode == 1 )
+/*	if( g_operating_mode == 1 )
 	{
 		//cv_image = RegionOfInterest( input_image, 0.7 );
 		ROS_INFO( "ROI" );
@@ -102,6 +102,8 @@ VisualServoing2D::VisualServoing( IplImage* input_image )
 	{
 		cv_image = input_image;
 	}
+|*/					
+	cv_image = input_image;
 
 	m_image_height = cv_image->height;
 	m_image_width = cv_image->width;
@@ -119,11 +121,11 @@ VisualServoing2D::VisualServoing( IplImage* input_image )
 	cvCvtColor( cv_image, gray, CV_BGR2GRAY );
 	cvSmooth( gray, gray, CV_GAUSSIAN, 7, 7 );
 	//cvEqualizeHist( gray, gray );
-	cvThreshold( gray, gray, 0, 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU );
+	cvThreshold( gray, gray, 50, 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU );
 
 	//    This takes a background image (the gripper on a white background) and removes
 	//  it from the current image (cv_image). The results are stored again in cv_image.
-	cvSub( gray, background_threshold, gray, NULL );
+	//cvSub( gray, background_threshold, gray, NULL );
 
 	// Find any blobs that are not white.
 	CBlobResult blobs = CBlobResult( gray, NULL, 0 );
