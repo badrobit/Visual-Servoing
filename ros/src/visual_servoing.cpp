@@ -203,8 +203,9 @@ private:
   			ROS_ERROR( "Could not convert from '%s' to 'bgr8'.", image_message->encoding.c_str() );
   		}
 
-  		m_is_visual_servoing_completed = m_visual_servoing->VisualServoing( cv_image );
-  		//m_is_visual_servoing_completed = checkLimits( m_joint_positions );
+ 		m_is_visual_servoing_completed = m_visual_servoing->VisualServoing( cv_image );
+		m_is_visual_servoing_completed = false;  		
+//m_is_visual_servoing_completed = checkLimits( m_joint_positions );
   	}
 
   /**
