@@ -28,6 +28,10 @@
 
 #include "VisualServoing2D.h"
 
+/**
+ * This is the ROS Node for the visual servoing application. It will get all of the ROS dependent
+ * attributes and determine which library should be run 2D or 3D visual servoing.
+ */
 class raw_visual_servoing 
 {
 public:
@@ -58,7 +62,6 @@ public:
 		// Service commands to allow this node to be started and stopped externally
 		service_do_visual_serv = m_node_handler.advertiseService( "do_visual_servoing", &raw_visual_servoing::do_visual_servoing, this );
 		ROS_INFO( "Advertised 'do_visual_servoing' service for raw_visual_servoing" );
-
 		ROS_INFO( "Visual servoing node initialized." );
 	}
 
