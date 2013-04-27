@@ -48,8 +48,6 @@ public:
 			 ROS_WARN("Parameter \"operating_mode\" not available on parameter server, use default value: %d ", mode);
 		 }
 
-
-
 		m_visual_servoing = new VisualServoing2D( true,
 												  0,
 												  safe_cmd_vel_service,
@@ -92,9 +90,6 @@ public:
 		// Velocity control for the YouBot base.
 		base_velocities_publisher = m_node_handler.advertise<geometry_msgs::Twist>( "/cmd_vel_safe", 1 );
 
-		// Velocity Control for the YouBot arm.
-		//arm_velocities_publisher = node_handler.advertise<brics_actuator::JointVelocities>( "/arm_controller/velocity_command", 1 );
-
 		ros::Time start_time = ros::Time::now();
 
 		ROS_INFO("VisualServoing: Starting Blob Detection");
@@ -120,11 +115,11 @@ public:
 			base_velocities_publisher.publish(zero_vel);
 		}
 
-		// Turn off the image subscriber for the web camera.
+		/*
+		 * Shut down all subscribers and publishers as we have completed the task and do not need
+		 * them up and running anymore.
+		 */
 		m_image_subscriber.shutdown();
-
-		// Turn off the velocity publishers for the YouBot Arm & Base.
-		arm_velocities_publisher.shutdown();
 		base_velocities_publisher.shutdown();
 
 		// Shut down any open windows.
@@ -140,17 +135,17 @@ public:
 	 */
 	bool stop(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 	{
-		// Turn off the image subscriber for the web camera.
+		/*
+		 * Shut down all subscribers and publishers as we have completed the task and do not need
+		 * them up and running anymore.
+		 */
 		m_image_subscriber.shutdown();
-
-		// Turn off the velocity publishers for the YouBot Arm & Base.
-		arm_velocities_publisher.shutdown();
 		base_velocities_publisher.shutdown();
 
 		// Shut down any open windows.
 		cvDestroyAllWindows();
 
-		ROS_INFO("Blob Detection Disabled");
+		ROS_INFO( "Blob Detection Disabled" );
 		return true;
 	}
 
@@ -178,7 +173,6 @@ private:
 		joint_limits.joint_name = m_arm_joint_names[i];
 		m_node_handler.getParam("/arm_controller/limits/" + m_arm_joint_names[i] + "/min", joint_limits.min_position);
 		m_node_handler.getParam("/arm_controller/limits/" + m_arm_joint_names[i] + "/max", joint_limits.max_position);
-		//m_arm_joint_limits.push_back(joint_limits);
 		m_upper_joint_limits.push_back( joint_limits.max_position );
 		m_lower_joint_limits.push_back( joint_limits.min_position );
 	  }
@@ -204,8 +198,7 @@ private:
   		}
 
  		m_is_visual_servoing_completed = m_visual_servoing->VisualServoing( cv_image );
-		m_is_visual_servoing_completed = false;  		
-//m_is_visual_servoing_completed = checkLimits( m_joint_positions );
+		//m_is_visual_servoing_completed = checkLimits( m_joint_positions );
   	}
 
   /**
@@ -213,7 +206,6 @@ private:
    */
   void jointstateCallback( sensor_msgs::JointStateConstPtr joints )
   {
-
   	for (unsigned i = 0; i < joints->position.size(); i++) {
 
   		const char* joint_uri = joints->name[i].c_str();
@@ -230,6 +222,15 @@ private:
   	}
   }
 
+  /**
+   * This function is used to determine if the joint limits of the robotic arm being used by the
+   * robot are about to be exceeded. If they are near the "soft limit" (5% before the hard limit)
+   * we will abort visual servoing as this is currently a behaviour that we are unable to recover
+   * from.
+   *
+   * TODO: instead of simply aborting on a soft limit being reached we should have a better reaction
+   * to this type of occurence.
+   */
   bool checkLimits( KDL::JntArray joint_positions )
   {
 	  const double joint_threshold = 0.05;
@@ -261,15 +262,15 @@ protected:
   VisualServoing2D*									m_visual_servoing;
 
   ros::NodeHandle 									m_node_handler;
-  image_transport::ImageTransport 					image_transporter;
-  image_transport::Subscriber 						m_image_subscriber;
 
+  /*
+   * Standard ROS Publishers and Subscribers.
+   */
   ros::ServiceClient  								safe_cmd_vel_service;
-
+  image_transport::ImageTransport 					image_transporter;
   ros::Publisher								 	base_velocities_publisher;
-  ros::Publisher 									arm_velocities_publisher;
-
   ros::Subscriber 									m_sub_joint_states;
+  image_transport::Subscriber 						m_image_subscriber;
 
   std::vector<std::string> 							m_arm_joint_names;
   std::vector<double> 								m_upper_joint_limits;
