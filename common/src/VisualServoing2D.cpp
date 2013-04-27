@@ -225,7 +225,7 @@ g only at a region of interest instead of the whole image.
 
 		cvLine( blob_image,   cvPoint( 0, (m_image_height/2) + m_verticle_offset ), cvPoint( m_image_width, (m_image_height/2) + m_verticle_offset ), CV_RGB( 255, 0, 0 ), 2, 0 );
 		cvLine( blob_image,   cvPoint( (m_image_width/2), 0 ), cvPoint( (m_image_width/2), m_image_height ), CV_RGB( 255, 0, 0 ), 2, 0 );
-		cvRectangle( blob_image, cvPoint( 0, blob_image->height-40 ), cvPoint( blob_image->width, blob_image->height ), CV_RGB( 0, 0, 0 ), -1 );
+		cvRectangle( blob_image, cvPoint( 0, blob_image->height-m_verticle_offset ), cvPoint( blob_image->width, blob_image->height ), CV_RGB( 0, 0, 0 ), -1 );
 
 		std::string x_str = "X: ";
 		x_str += boost::lexical_cast<std::string>( x_offset );
