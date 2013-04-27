@@ -318,7 +318,7 @@ VisualServoing2D::BaseAdjustmentY( double y_offset )
 	else if( fabs( y_offset ) < m_y_threshold )
 	{
 		move_speed = 0.0;
-		m_done_base_y_adjustment = true;
+		return_val = true;
 		ROS_INFO( "Base Adjustment in Y Finished" );
 	}
 	else if( m_service_msg.response.value == true )

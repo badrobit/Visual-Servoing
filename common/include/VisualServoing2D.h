@@ -160,7 +160,7 @@ protected:
 	const static double 							m_rot_velocity = 0.4;
 
 	const static int								m_x_target = 0;
-	const static int 								m_x_threshold = 40;
+	const static int 								m_x_threshold = 60;
 
 	const static int								m_y_target = 0;
 	const static int 								m_y_threshold = 40;
