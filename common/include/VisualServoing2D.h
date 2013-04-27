@@ -155,9 +155,9 @@ protected:
 	const static int								m_min_blob_area = 1536;
 	const static int								m_max_blob_area = 38500;
 	const static int 								m_verticle_offset = 40;
-	const static double 							m_x_velocity = 0.01;
-	const static double 							m_y_velocity = 0.01;
-	const static double 							m_rot_velocity = 0.4;
+	const static double 							m_x_velocity = 0.007;
+	const static double 							m_y_velocity = 0.007;
+	const static double 							m_rot_velocity = 0.2;
 
 	const static int								m_x_target = 0;
 	const static int 								m_x_threshold = 60;
