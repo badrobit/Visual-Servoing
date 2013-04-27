@@ -152,7 +152,7 @@ protected:
 	/*
 	 * Constant values.
 	 */
-	const static int								m_min_blob_area = 1536;
+	const static int								m_min_blob_area = 2500;
 	const static int								m_max_blob_area = 38500;
 	const static int 								m_verticle_offset = 40;
 	const static double 							m_x_velocity = 0.007;
