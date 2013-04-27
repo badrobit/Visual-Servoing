@@ -66,14 +66,14 @@ private:
 	 * system. It will determine the direction to move the robot base to account
 	 * for the provided offset.
 	 */
-	void BaseAdjustmentX( double x_offset );
+	bool BaseAdjustmentX( double x_offset );
 
 	/**
 	 * This function takes in a given y offset in a standard Cartesian coordinate
 	 * system. It will determine the direction to move the robot base to account
 	 * for the provided offset.
 	 */
-	void BaseAdjustmentY( double y_offset );
+	bool BaseAdjustmentY( double y_offset );
 
 	/**
 	 * This function is designed to take the determined rotational offset that
@@ -153,14 +153,14 @@ protected:
 	 * Constant values.
 	 */
 	const static int								m_min_blob_area = 1536;
-	const static int								m_max_blob_area = 6144;
+	const static int								m_max_blob_area = 38500;
 	const static int 								m_verticle_offset = 40;
-	const static double 							m_x_velocity = 0.005;
-	const static double 							m_y_velocity = 0.005;
-	const static double 							m_rot_velocity = 0.2;
+	const static double 							m_x_velocity = 0.01;
+	const static double 							m_y_velocity = 0.01;
+	const static double 							m_rot_velocity = 0.4;
 
 	const static int								m_x_target = 0;
-	const static int 								m_x_threshold = 20;
+	const static int 								m_x_threshold = 40;
 
 	const static int								m_y_target = 0;
 	const static int 								m_y_threshold = 40;

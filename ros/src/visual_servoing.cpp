@@ -52,12 +52,13 @@ public:
 			 ROS_WARN("Parameter \"operating_mode\" not available on parameter server, use default value: %d ", mode);
 		 }
 
+		SetupYoubotArm();
+
 		m_visual_servoing = new VisualServoing2D( true,
 												  0,
 												  safe_cmd_vel_service,
 												  m_arm_joint_names );
 
-		SetupYoubotArm();
 
 		// Service commands to allow this node to be started and stopped externally
 		service_do_visual_serv = m_node_handler.advertiseService( "do_visual_servoing", &raw_visual_servoing::do_visual_servoing, this );
@@ -168,6 +169,8 @@ private:
 		ROS_ASSERT(parameter_list[i].getType() == XmlRpc::XmlRpcValue::TypeString);
 		m_arm_joint_names.push_back(static_cast<std::string>(parameter_list[i]));
 	  }
+
+	ROS_INFO_STREAM( "T! :" << m_arm_joint_names.size() ); 
 
 	  //read joint limits
 	  for(unsigned int i=0; i < m_arm_joint_names.size(); ++i)

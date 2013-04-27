@@ -58,6 +58,8 @@ VisualServoing2D::~VisualServoing2D()
 bool
 VisualServoing2D::VisualServoing( IplImage* input_image )
 {
+	bool return_val = false; 
+
 	double x_offset = 0;
 	double y_offset = 0;
 	double rot_offset = 0;
@@ -89,7 +91,8 @@ VisualServoing2D::VisualServoing( IplImage* input_image )
 	/**
 	 * In order to make Visual Servoing useful during the conveyer belt tests we need to ensure that
 	 * we are able to focus only on the conveyer belt. For this reason we will resize the image so
-	 * that we are looking only at a region of interest instead of the whole image.
+	 * that we are lookin
+g only at a region of interest instead of the whole image.
 	 *
 	 */
 /*	if( g_operating_mode == 1 )
@@ -112,14 +115,14 @@ VisualServoing2D::VisualServoing( IplImage* input_image )
 	IplImage* background_threshold = cvCreateImage( cvGetSize( m_background_image ), 8, 1 );
 	cvCvtColor( m_background_image, background_threshold, CV_BGR2GRAY );
 	cvSmooth( background_threshold, background_threshold, CV_GAUSSIAN, 11, 11 );
-	cvThreshold( background_threshold, background_threshold, 0, 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU );
+	cvThreshold( background_threshold, background_threshold, 50, 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU );
 
 	blob_image = cvCreateImage( cvGetSize( cv_image ), IPL_DEPTH_8U, cv_image->nChannels );
 
 	IplImage* gray = cvCreateImage( cvGetSize( cv_image ), 8, 1 );
 	cvCvtColor( cv_image, gray, CV_BGR2GRAY );
 	cvSmooth( gray, gray, CV_GAUSSIAN, 11, 11 );
-	cvThreshold( gray, gray, 0, 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU );
+	cvThreshold( gray, gray, 50, 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU );
 
 	cvShowImage( "BACKGROUND THRESHOLD", background_threshold ); 
 	cvShowImage( "GRAY", gray ); 
@@ -206,14 +209,10 @@ VisualServoing2D::VisualServoing( IplImage* input_image )
 	  rot_offset = rot_offset - 180;
 	}
 
-	BaseAdjustmentX( x_offset );
-	BaseAdjustmentY( y_offset );
-	ArmAdjustment( rot_offset );
-
-	if( m_done_base_x_adjustment == true && m_done_base_y_adjustment == true && m_done_arm_rot_adjustment == true )
+	ROS_INFO_STREAM( ArmAdjustment( rot_offset ) ); 
+	if( BaseAdjustmentX( x_offset ) && BaseAdjustmentY( y_offset ) && ArmAdjustment( rot_offset ) )
 	{
-		m_blob_detection_completed = true;
-		return true;
+		return_val = true;
 		ROS_INFO( "Visual Servoing Completed." );
 	}
 
@@ -253,29 +252,32 @@ VisualServoing2D::VisualServoing( IplImage* input_image )
 
 	cvReleaseImage( &gray );
 	cvReleaseImage( &blob_image );
+
+	return return_val; 
 }
 
-void
+bool
 VisualServoing2D::BaseAdjustmentX( double x_offset )
 {
+	bool return_val = false; 
 	double move_speed = 0.0;
 
 	if( x_offset > m_x_threshold )
 	{
 		// move the robot base right
 		move_speed = -m_x_velocity;
-		m_done_base_x_adjustment = false;
+		return_val = false;
 	}
 	else if( x_offset < -m_x_threshold )
 	{
 		// move the robot left
 		move_speed = m_x_velocity;
-		m_done_base_x_adjustment = false;
+		return_val = false;
 	}
 	else if( fabs( x_offset ) < m_x_threshold )
 	{
 		move_speed = 0.0;
-		m_done_base_x_adjustment = true;
+		return_val = true;
 		ROS_INFO( "Base Adjustment in X Finished" );
 	}
 	else
@@ -289,9 +291,10 @@ VisualServoing2D::BaseAdjustmentX( double x_offset )
 	m_base_velocities_publisher.publish( m_youbot_base_velocities );
 }
 
-void
+bool
 VisualServoing2D::BaseAdjustmentY( double y_offset )
 {
+	bool return_val = false; 
 	double move_speed = 0.0;
 
 	if( !m_safe_cmd_vel_service.call( m_service_msg ) )
@@ -304,13 +307,13 @@ VisualServoing2D::BaseAdjustmentY( double y_offset )
 	{
 		// move the robot base right
 		move_speed = -m_y_velocity;
-		m_done_base_y_adjustment = false;
+		return_val = false;
 	}
 	else if( y_offset <= -m_y_threshold )
 	{
 		// move the robot left
 		move_speed = m_y_velocity;
-		m_done_base_y_adjustment = false;
+		return_val = false;
 	}
 	else if( fabs( y_offset ) < m_y_threshold )
 	{
@@ -323,24 +326,28 @@ VisualServoing2D::BaseAdjustmentY( double y_offset )
 		// This will only be set when the safe_cmd_vel is telling us that it cannot
 		//  allow for movement any longer in this direction.
 		move_speed = 0.0;
-		m_done_base_y_adjustment = true;
+		return_val = true;
 		ROS_INFO( "Base Adjustment in Y Finished" );
 	}
 	else
 	{
 		// should never happen but just in case.
-		m_done_base_y_adjustment = true;
+		return_val = true;
 		move_speed = 0.0;
 	}
 
 	// Prepare and then send the base movement commands.
 	m_youbot_base_velocities.linear.x = move_speed;
 	m_base_velocities_publisher.publish( m_youbot_base_velocities );
+
+	return return_val;
 }
 
 bool
 VisualServoing2D::ArmAdjustment( double orientation )
 {
+	ROS_INFO("CALLED");
+	bool return_val = false; 
 	double difference = fabs( orientation - m_rot_target );
 	double rotational_speed = 0.0;
 
@@ -351,7 +358,7 @@ VisualServoing2D::ArmAdjustment( double orientation )
 		 * We are not to far to the right of the object and our difference is not small enough yet.
 		 */
 		rotational_speed = m_rot_velocity;
-		m_done_arm_rot_adjustment = false;
+		return_val = false;
 	}
 	else if( orientation < m_rot_target && difference > m_rot_tolerance )
 	{
@@ -359,12 +366,12 @@ VisualServoing2D::ArmAdjustment( double orientation )
 		 * we are to far to the left of the object and our difference is still to large.
 		 */
 		rotational_speed = -m_rot_velocity;
-		m_done_arm_rot_adjustment = false;
+		return_val = false;
 	}
 	else if( difference < m_rot_tolerance )
 	{
 		rotational_speed = 0.0;
-		m_done_arm_rot_adjustment = true;
+		return_val = true;
 		ROS_INFO( "Arm Rotation Finished" );
 	}
 	else
@@ -373,7 +380,7 @@ VisualServoing2D::ArmAdjustment( double orientation )
 		 * We should never arrive at this state but just encase.
 		 */
 		ROS_ERROR( "SHIT WENT WRONG!" );
-		m_done_arm_rot_adjustment = false;
+		return_val = false;
 	}
 
 	ROS_INFO( "Orientation\t%f", orientation );
@@ -385,6 +392,7 @@ VisualServoing2D::ArmAdjustment( double orientation )
 	 * had previously been sent.
 	 */
 	m_youbot_arm_velocities.velocities.clear();
+	ROS_INFO_STREAM( "JOINT SIZE: " << m_arm_joint_names.size() ); 
 	for(unsigned int i=0; i < m_arm_joint_names.size(); ++i)
 	{
 		brics_actuator::JointValue joint_value;
@@ -403,58 +411,13 @@ VisualServoing2D::ArmAdjustment( double orientation )
 		}
 
 		m_youbot_arm_velocities.velocities.push_back(joint_value);
-		//m_arm_velocities_publisher.publish( m_youbot_arm_velocities );
+		
 	}
 
-	return m_done_arm_rot_adjustment;
+	m_arm_velocities_publisher.publish( m_youbot_arm_velocities );
+	ROS_INFO( "ARM PUBLISHED" ); 
 
-
-	/*
-	if( rot_offset != 90 || rot_offset != 270 )
-	{
-		double rotational_speed = 0.0;
-
-
-
-		if( ( rot_offset < 85 && rot_offset >= 0 ) || ( rot_offset < 265 && rot_offset >= 235 ) )
-		{
-			rotational_speed = -m_rot_velocity;
-			m_done_arm_rot_adjustment = false;
-		}
-		else if( rot_offset > 94 && rot_offset < 235 )
-		{
-			rotational_speed = m_rot_velocity;
-			m_done_arm_rot_adjustment = false;
-		}
-		else
-		{
-			rotational_speed = 0.0;
-			m_done_arm_rot_adjustment = true;
-		}
-
-		m_youbot_arm_velocities.velocities.clear();
-		for(unsigned int i=0; i < m_arm_joint_names.size(); ++i)
-		{
-			brics_actuator::JointValue joint_value;
-
-			joint_value.timeStamp = ros::Time::now();
-			joint_value.joint_uri = m_arm_joint_names[i];
-			joint_value.unit = to_string(boost::units::si::radian_per_second);
-
-			if( i == 4 )
-			{
-			  joint_value.value = rotational_speed;
-			}
-			else
-			{
-			  joint_value.value = 0.0;
-			}
-
-			m_youbot_arm_velocities.velocities.push_back(joint_value);
-			//m_arm_velocities_publisher.publish( m_youbot_arm_velocities );
-		}
-	}
-	*/
+	return return_val;
 }
 
 IplImage*
