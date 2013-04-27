@@ -51,7 +51,7 @@ public:
 
 
 		m_visual_servoing = new VisualServoing2D( true,
-												  mode,
+												  0,
 												  safe_cmd_vel_service,
 												  m_arm_joint_names );
 
