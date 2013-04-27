@@ -289,6 +289,7 @@ VisualServoing2D::BaseAdjustmentX( double x_offset )
 	// Prepare and then send the base movement commands.
 	m_youbot_base_velocities.linear.y = move_speed;
 	m_base_velocities_publisher.publish( m_youbot_base_velocities );
+	return return_val;
 }
 
 bool
@@ -321,6 +322,15 @@ VisualServoing2D::BaseAdjustmentY( double y_offset )
 		return_val = true;
 		ROS_INFO( "Base Adjustment in Y Finished" );
 	}
+	/**
+	 * TODO: Change this so that we only return true when we can no longer line the object up in the
+	 * y direction but the centroid of the blobHelp is still within an emergency range (praying we can
+	 * grasp it). Otherwise we need to return that the object is not able to be grasped due to its
+	 * distance on the platform. We could deal with this either by returning that we cannot move the
+	 * object or to implement a grasp and drag scenario where we grab the last little bit and drag
+	 * it into the frame. This would be the best idea as it would allow us to grab objects which are
+	 * barely in our range and would not be normally graspable.
+	 */
 	else if( m_service_msg.response.value == true )
 	{
 		// This will only be set when the safe_cmd_vel is telling us that it cannot
@@ -415,8 +425,6 @@ VisualServoing2D::ArmAdjustment( double orientation )
 	}
 
 	m_arm_velocities_publisher.publish( m_youbot_arm_velocities );
-	ROS_INFO( "ARM PUBLISHED" ); 
-
 	return return_val;
 }
 
