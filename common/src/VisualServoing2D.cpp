@@ -490,7 +490,7 @@ void
 VisualServoing2D::CreatePublishers( int arm_model )
 {
 	// Set up the base velocities publisher:
-	m_base_velocities_publisher = m_node_handler.advertise<geometry_msgs::Twist>( "/cmd_vel_safe", 1 );
+	m_base_velocities_publisher = m_node_handler.advertise<geometry_msgs::Twist>( "/cmd_vel", 1 );
 
 	ROS_INFO( "Robot Base Publisher Setup" );
 
