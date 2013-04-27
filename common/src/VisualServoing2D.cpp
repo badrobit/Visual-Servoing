@@ -110,20 +110,22 @@ VisualServoing2D::VisualServoing( IplImage* input_image )
 	// TODO: Modify the program so that it can still run without a background image!
 	IplImage* background_threshold = cvCreateImage( cvGetSize( m_background_image ), 8, 1 );
 	cvCvtColor( m_background_image, background_threshold, CV_BGR2GRAY );
-	cvSmooth( background_threshold, background_threshold, CV_GAUSSIAN, 7, 7 );
+	cvSmooth( background_threshold, background_threshold, CV_GAUSSIAN, 11, 11 );
 	cvThreshold( background_threshold, background_threshold, 0, 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU );
 
 	blob_image = cvCreateImage( cvGetSize( cv_image ), IPL_DEPTH_8U, cv_image->nChannels );
 
 	IplImage* gray = cvCreateImage( cvGetSize( cv_image ), IPL_DEPTH_8U, 1 );
 	cvCvtColor( cv_image, gray, CV_BGR2GRAY );
-	cvSmooth( gray, gray, CV_GAUSSIAN, 7, 7 );
+	cvSmooth( gray, gray, CV_GAUSSIAN, 11, 11 );
 	//cvEqualizeHist( gray, gray );
 	cvThreshold( gray, gray, 0, 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU );
 
 	//    This takes a background image (the gripper on a white background) and removes
 	//  it from the current image (cv_image). The results are stored again in cv_image.
 	cvSub( gray, background_threshold, gray, NULL );
+
+	cvShowImage( "TEST", gray );
 
 	// Find any blobs that are not white.
 	CBlobResult blobs = CBlobResult( gray, NULL, 0 );
