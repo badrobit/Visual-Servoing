@@ -491,12 +491,11 @@ VisualServoing2D::CreatePublishers( int arm_model )
 {
 	// Set up the base velocities publisher:
 	m_base_velocities_publisher = m_node_handler.advertise<geometry_msgs::Twist>( "/cmd_vel", 1 );
-
 	ROS_INFO( "Robot Base Publisher Setup" );
 
 	if( arm_model == 0 )
 	{
-		ROS_INFO( "The Visual Servoing cannot move the arm" );
+		ROS_INFO( "The robot has no arm to move." );
 	}
 	else if( arm_model == 1 )
 	{
