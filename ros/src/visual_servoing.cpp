@@ -19,6 +19,8 @@
 
 #include <std_srvs/Empty.h>
 #include <hbrs_srvs/ReturnBool.h>
+#include <raw_srvs/DoVisualServoing.h>
+#include <raw_msgs/VisualServoing.h>
 
 #include <arm_navigation_msgs/JointLimits.h>
 #include <brics_actuator/JointVelocities.h>
@@ -77,8 +79,8 @@ public:
 	 * This is the service hook for visual servoing. If you want to run the acutal visual servoing
 	 * you wll need to call the "do_visual_servoing" service call through ROS.
 	 */
-	bool do_visual_servoing( hbrs_srvs::ReturnBool::Request &req,
-							 hbrs_srvs::ReturnBool::Response &res )
+	bool do_visual_servoing( raw_srvs::DoVisualServoing::Request &req,
+							 raw_srvs::DoVisualServoing::Response &res )
 	{
 		m_is_visual_servoing_completed = false;
 
@@ -107,14 +109,17 @@ public:
 		if( (ros::Time::now() - start_time).toSec() < m_visual_servoing_timeout )
 		{
 			ROS_INFO( "Visual Servoing Sucessful." );
-			res.value = true;
+			res.return_value.error_code = raw_msgs::VisualServoing::SUCCESS;
 			geometry_msgs::Twist zero_vel;
 			base_velocities_publisher.publish(zero_vel);
 		}
 		else
 		{
 			ROS_ERROR( "Visual Servoing Failure due to Timeout" );
-			res.value = false;
+			/**
+			 * TODO: modify output to failure due to timeout.
+			 */
+			res.return_value.error_code = raw_msgs::VisualServoing::TIMEOUT;
 			geometry_msgs::Twist zero_vel;
 			base_velocities_publisher.publish(zero_vel);
 		}
@@ -231,11 +236,11 @@ private:
   /**
    * This function is used to determine if the joint limits of the robotic arm being used by the
    * robot are about to be exceeded. If they are near the "soft limit" (5% before the hard limit)
-   * we will abort visual servoing as this is currently a behaviour that we are unable to recover
+   * we will abort visual servoing as this is currently a behavior that we are unable to recover
    * from.
    *
    * TODO: instead of simply aborting on a soft limit being reached we should have a better reaction
-   * to this type of occurence.
+   * to this type of occurrence.
    */
   bool checkLimits( KDL::JntArray joint_positions )
   {
