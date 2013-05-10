@@ -21,9 +21,10 @@ VisualServoing2D::VisualServoing2D( bool debugging,
 	m_done_arm_rot_adjustment = true;
 	m_blob_detection_completed = false;
 
-	m_background_image = LoadBackgroundImage();
+	m_head_left = false;
+	m_head_right = true;
 
-	CreatePublishers( 1 );
+	m_background_image = LoadBackgroundImage();
 
 	m_arm_joint_names = arm_joint_names;
 
@@ -124,13 +125,15 @@ g only at a region of interest instead of the whole image.
 	cvSmooth( gray, gray, CV_GAUSSIAN, 11, 11 );
 	cvThreshold( gray, gray, 50, 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU );
 
-	cvShowImage( "BACKGROUND THRESHOLD", background_threshold ); 
-	cvShowImage( "GRAY", gray ); 
+	//cvShowImage( "BACKGROUND THRESHOLD", background_threshold );
+	//cvShowImage( "GRAY", gray );
 
 	//    This takes a background image (the gripper on a white background) and removes
 	//  it from the current image (cv_image). The results are stored again in cv_image.
 	cvSub( gray, background_threshold, gray );
-	cvShowImage( "SUB", gray ); 
+	//cvShowImage( "SUB", gray );
+
+	//HUD("b-it-bots Visual Servoing", 2, background_threshold, gray );
 
 	// Find any blobs that are not white.
 	CBlobResult blobs = CBlobResult( gray, NULL, 0 );
@@ -190,8 +193,6 @@ g only at a region of interest instead of the whole image.
 		  m_tracked_y = temp_y;
 		}
 	  }
-
-	  //temp_blob.FillBlob( blob_image, CV_RGB( 255, 0, 0 ) );
 	}
 
 	if( g_debugging )
@@ -209,10 +210,46 @@ g only at a region of interest instead of the whole image.
 	  rot_offset = rot_offset - 180;
 	}
 
-	ROS_INFO_STREAM( ArmAdjustment( rot_offset ) ); 
-	if( BaseAdjustmentX( x_offset ) && BaseAdjustmentY( y_offset ) && ArmAdjustment( rot_offset ) )
+	bool done_x = false;
+	bool done_y = false;
+	bool done_t = false;
+
+	if( m_gripper_position < 1.91622 )
+	{
+		m_head_left = false;
+		m_head_right = true;
+		done_x = BaseAdjustmentX( y_offset );
+		done_y = BaseAdjustmentY( x_offset );
+	}
+	else if( m_gripper_position > 3.9277 )
+	{
+		m_head_left = true;
+		m_head_right = false;
+		done_x = BaseAdjustmentX( y_offset );
+		done_y = BaseAdjustmentY( x_offset );
+	}
+	else
+	{
+		m_head_left = false;
+		m_head_right = false;
+		done_x = BaseAdjustmentX( x_offset );
+		done_y = BaseAdjustmentY( y_offset );
+	}
+	done_t = ArmAdjustment( rot_offset );
+
+	if( done_x && done_y && done_t )
 	{
 		return_val = true;
+		geometry_msgs::Twist zero_vel;
+		m_base_velocities_publisher.publish(zero_vel);
+		m_base_velocities_publisher.shutdown();
+		ROS_INFO( "Base velocity publisher zeroed and shutdown" );
+
+		brics_actuator::JointVelocities zero_arm_vel;
+		m_arm_velocities_publisher.publish( zero_arm_vel );
+		m_arm_velocities_publisher.shutdown();
+		ROS_INFO( "Arm velcoity publisher zeroed and shutdown" );
+
 		ROS_INFO( "Visual Servoing Completed." );
 	}
 
@@ -262,30 +299,84 @@ VisualServoing2D::BaseAdjustmentX( double x_offset )
 	bool return_val = false; 
 	double move_speed = 0.0;
 
-	if( x_offset > m_x_threshold )
+	if( m_head_left )
 	{
-		// move the robot base right
-		move_speed = -m_x_velocity;
-		return_val = false;
+		if( x_offset > m_x_threshold )
+		{
+			// move the robot base right
+			move_speed = -m_x_velocity;
+			return_val = false;
+		}
+		else if( x_offset < -m_x_threshold )
+		{
+			// move the robot left
+			move_speed = m_x_velocity;
+			return_val = false;
+		}
+		else if( fabs( x_offset ) < m_x_threshold )
+		{
+			move_speed = 0.0;
+			return_val = true;
+			ROS_INFO( "Base Adjustment in X Finished" );
+		}
+		else
+		{
+			// should never happen but just in case.
+			move_speed = 0.0;
+		}
 	}
-	else if( x_offset < -m_x_threshold )
+	else if( m_head_right )
 	{
-		// move the robot left
-		move_speed = m_x_velocity;
-		return_val = false;
-	}
-	else if( fabs( x_offset ) < m_x_threshold )
-	{
-		move_speed = 0.0;
-		return_val = true;
-		ROS_INFO( "Base Adjustment in X Finished" );
+		if( x_offset > m_x_threshold )
+		{
+			// move the robot base right
+			move_speed = m_x_velocity;
+			return_val = false;
+		}
+		else if( x_offset < -m_x_threshold )
+		{
+			// move the robot left
+			move_speed = -m_x_velocity;
+			return_val = false;
+		}
+		else if( fabs( x_offset ) < m_x_threshold )
+		{
+			move_speed = 0.0;
+			return_val = true;
+			ROS_INFO( "Base Adjustment in X Finished" );
+		}
+		else
+		{
+			// should never happen but just in case.
+			move_speed = 0.0;
+		}
 	}
 	else
 	{
-		// should never happen but just in case.
-		move_speed = 0.0;
+		if( x_offset > m_x_threshold )
+		{
+			// move the robot base right
+			move_speed = -m_x_velocity;
+			return_val = false;
+		}
+		else if( x_offset < -m_x_threshold )
+		{
+			// move the robot left
+			move_speed = m_x_velocity;
+			return_val = false;
+		}
+		else if( fabs( x_offset ) < m_x_threshold )
+		{
+			move_speed = 0.0;
+			return_val = true;
+			ROS_INFO( "Base Adjustment in X Finished" );
+		}
+		else
+		{
+			// should never happen but just in case.
+			move_speed = 0.0;
+		}
 	}
-
 	// Prepare and then send the base movement commands.
 	m_youbot_base_velocities.linear.y = move_speed;
 	m_base_velocities_publisher.publish( m_youbot_base_velocities );
@@ -304,47 +395,140 @@ VisualServoing2D::BaseAdjustmentY( double y_offset )
 		m_service_msg.response.value = false;
 	}
 
-	if( y_offset >= m_y_threshold )
+	if( m_head_left )
 	{
-		// move the robot base right
-		move_speed = -m_y_velocity;
-		return_val = false;
+		if( y_offset >= m_y_threshold )
+		{
+			// move the robot base right
+			move_speed = m_y_velocity;
+			return_val = false;
+		}
+		else if( y_offset <= -m_y_threshold )
+		{
+			// move the robot left
+			move_speed = -m_y_velocity;
+			return_val = false;
+		}
+		else if( fabs( y_offset ) < m_y_threshold )
+		{
+			move_speed = 0.0;
+			return_val = true;
+			ROS_INFO( "Base Adjustment in Y Finished" );
+		}
+		/**
+		 * TODO: Change this so that we only return true when we can no longer line the object up in the
+		 * y direction but the centroid of the blobHelp is still within an emergency range (praying we can
+		 * grasp it). Otherwise we need to return that the object is not able to be grasped due to its
+		 * distance on the platform. We could deal with this either by returning that we cannot move the
+		 * object or to implement a grasp and drag scenario where we grab the last little bit and drag
+		 * it into the frame. This would be the best idea as it would allow us to grab objects which are
+		 * barely in our range and would not be normally graspable.
+		 */
+		else if( m_service_msg.response.value == true )
+		{
+			// This will only be set when the safe_cmd_vel is telling us that it cannot
+			//  allow for movement any longer in this direction.
+			move_speed = 0.0;
+			return_val = true;
+			ROS_INFO( "Base Adjustment in Y Finished" );
+		}
+		else
+		{
+			// should never happen but just in case.
+			return_val = true;
+			move_speed = 0.0;
+		}
 	}
-	else if( y_offset <= -m_y_threshold )
+	else if( m_head_right )
 	{
-		// move the robot left
-		move_speed = m_y_velocity;
-		return_val = false;
-	}
-	else if( fabs( y_offset ) < m_y_threshold )
-	{
-		move_speed = 0.0;
-		return_val = true;
-		ROS_INFO( "Base Adjustment in Y Finished" );
-	}
-	/**
-	 * TODO: Change this so that we only return true when we can no longer line the object up in the
-	 * y direction but the centroid of the blobHelp is still within an emergency range (praying we can
-	 * grasp it). Otherwise we need to return that the object is not able to be grasped due to its
-	 * distance on the platform. We could deal with this either by returning that we cannot move the
-	 * object or to implement a grasp and drag scenario where we grab the last little bit and drag
-	 * it into the frame. This would be the best idea as it would allow us to grab objects which are
-	 * barely in our range and would not be normally graspable.
-	 */
-	else if( m_service_msg.response.value == true )
-	{
-		// This will only be set when the safe_cmd_vel is telling us that it cannot
-		//  allow for movement any longer in this direction.
-		move_speed = 0.0;
-		return_val = true;
-		ROS_INFO( "Base Adjustment in Y Finished" );
+		if( y_offset >= m_y_threshold )
+		{
+			// move the robot base right
+			move_speed = -m_y_velocity;
+			return_val = false;
+		}
+		else if( y_offset <= -m_y_threshold )
+		{
+			// move the robot left
+			move_speed = m_y_velocity;
+			return_val = false;
+		}
+		else if( fabs( y_offset ) < m_y_threshold )
+		{
+			move_speed = 0.0;
+			return_val = true;
+			ROS_INFO( "Base Adjustment in Y Finished" );
+		}
+		/**
+		 * TODO: Change this so that we only return true when we can no longer line the object up in the
+		 * y direction but the centroid of the blobHelp is still within an emergency range (praying we can
+		 * grasp it). Otherwise we need to return that the object is not able to be grasped due to its
+		 * distance on the platform. We could deal with this either by returning that we cannot move the
+		 * object or to implement a grasp and drag scenario where we grab the last little bit and drag
+		 * it into the frame. This would be the best idea as it would allow us to grab objects which are
+		 * barely in our range and would not be normally graspable.
+		 */
+		else if( m_service_msg.response.value == true )
+		{
+			// This will only be set when the safe_cmd_vel is telling us that it cannot
+			//  allow for movement any longer in this direction.
+			move_speed = 0.0;
+			return_val = true;
+			ROS_INFO( "Base Adjustment in Y Finished" );
+		}
+		else
+		{
+			// should never happen but just in case.
+			return_val = true;
+			move_speed = 0.0;
+		}
 	}
 	else
 	{
-		// should never happen but just in case.
-		return_val = true;
-		move_speed = 0.0;
+		if( y_offset >= m_y_threshold )
+		{
+			// move the robot base right
+			move_speed = -m_y_velocity;
+			return_val = false;
+		}
+		else if( y_offset <= -m_y_threshold )
+		{
+			// move the robot left
+			move_speed = m_y_velocity;
+			return_val = false;
+		}
+		else if( fabs( y_offset ) < m_y_threshold )
+		{
+			move_speed = 0.0;
+			return_val = true;
+			ROS_INFO( "Base Adjustment in Y Finished" );
+		}
+		/**
+		 * TODO: Change this so that we only return true when we can no longer line the object up in the
+		 * y direction but the centroid of the blobHelp is still within an emergency range (praying we can
+		 * grasp it). Otherwise we need to return that the object is not able to be grasped due to its
+		 * distance on the platform. We could deal with this either by returning that we cannot move the
+		 * object or to implement a grasp and drag scenario where we grab the last little bit and drag
+		 * it into the frame. This would be the best idea as it would allow us to grab objects which are
+		 * barely in our range and would not be normally graspable.
+		 */
+		else if( m_service_msg.response.value == true )
+		{
+			// This will only be set when the safe_cmd_vel is telling us that it cannot
+			//  allow for movement any longer in this direction.
+			move_speed = 0.0;
+			return_val = true;
+			ROS_INFO( "Base Adjustment in Y Finished" );
+		}
+		else
+		{
+			// should never happen but just in case.
+			return_val = true;
+			move_speed = 0.0;
+		}
 	}
+
+
 
 	// Prepare and then send the base movement commands.
 	m_youbot_base_velocities.linear.x = move_speed;
@@ -356,7 +540,6 @@ VisualServoing2D::BaseAdjustmentY( double y_offset )
 bool
 VisualServoing2D::ArmAdjustment( double orientation )
 {
-	ROS_INFO("CALLED");
 	bool return_val = false; 
 	double difference = fabs( orientation - m_rot_target );
 	double rotational_speed = 0.0;
@@ -402,7 +585,6 @@ VisualServoing2D::ArmAdjustment( double orientation )
 	 * had previously been sent.
 	 */
 	m_youbot_arm_velocities.velocities.clear();
-	ROS_INFO_STREAM( "JOINT SIZE: " << m_arm_joint_names.size() ); 
 	for(unsigned int i=0; i < m_arm_joint_names.size(); ++i)
 	{
 		brics_actuator::JointValue joint_value;
@@ -426,6 +608,13 @@ VisualServoing2D::ArmAdjustment( double orientation )
 
 	m_arm_velocities_publisher.publish( m_youbot_arm_velocities );
 	return return_val;
+}
+
+void
+VisualServoing2D::UpdateGripperPosition( float new_position )
+{
+	ROS_DEBUG( "Gripper position updated inside of VisualServoing2D" );
+	m_gripper_position = new_position;
 }
 
 IplImage*

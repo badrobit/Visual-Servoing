@@ -59,6 +59,19 @@ public:
 	 */
 	bool VisualServoing( IplImage* input_image );
 
+	void UpdateGripperPosition( float new_position );
+
+	/**
+	 * This function creates the publishers that will publish velcities for both the robotic base
+	 * through the GeometryTwist message as well as for the arm based on the arm model.
+	 *
+	 * Arm Models:
+	 * 0 - Unknown.
+	 * 1 - KUKA YouBot Arm
+	 * 2 - KUKA Lightweight Arm.
+	 */
+	void CreatePublishers( int arm_model );
+
 private:
 
 	/**
@@ -90,17 +103,6 @@ private:
 	IplImage* LoadBackgroundImage();
 
 	/**
-	 * This function creates the publishers that will publish velcities for both the robotic base
-	 * through the GeometryTwist message as well as for the arm based on the arm model.
-	 *
-	 * Arm Models:
-	 * 0 - Unknown.
-	 * 1 - KUKA YouBot Arm
-	 * 2 - KUKA Lightweight Arm.
-	 */
-	void CreatePublishers( int arm_model );
-
-	/**
 	 * This function takes in an image and it crops it so that it is done according to the provided
 	 * scaling factor from (0.0 - 1.0).
 	 */
@@ -129,12 +131,16 @@ protected:
 	bool 											m_done_base_y_adjustment;
 	bool 											m_done_arm_rot_adjustment;
 	bool 											m_blob_detection_completed;
+	bool											m_head_left;
+	bool 											m_head_right;
 
 	int												m_image_height;
 	int												m_image_width;
 
 	double 											m_tracked_x;
 	double 											m_tracked_y;
+
+	float											m_gripper_position;
 
 	geometry_msgs::Twist 							m_youbot_base_velocities;
 	brics_actuator::JointVelocities 				m_youbot_arm_velocities;
@@ -152,15 +158,15 @@ protected:
 	/*
 	 * Constant values.
 	 */
-	const static int								m_min_blob_area = 2500;
-	const static int								m_max_blob_area = 38500;
-	const static int 								m_verticle_offset = 30;
-	const static double 							m_x_velocity = 0.007;
-	const static double 							m_y_velocity = 0.007;
-	const static double 							m_rot_velocity = 0.2;
+	const static int								m_min_blob_area = 2000;
+	const static int								m_max_blob_area = 90000;
+	const static int 								m_verticle_offset = 0;
+	const static double 							m_x_velocity = 0.012;
+	const static double 							m_y_velocity = 0.012;
+	const static double 							m_rot_velocity = 0.25;
 
 	const static int								m_x_target = 0;
-	const static int 								m_x_threshold = 60;
+	const static int 								m_x_threshold = 30;
 
 	const static int								m_y_target = 0;
 	const static int 								m_y_threshold = 40;

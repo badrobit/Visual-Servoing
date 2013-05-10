@@ -96,6 +96,8 @@ public:
 		// Velocity control for the YouBot base.
 		base_velocities_publisher = m_node_handler.advertise<geometry_msgs::Twist>( "/cmd_vel_safe", 1 );
 
+		m_visual_servoing->CreatePublishers( 1 );
+
 		ros::Time start_time = ros::Time::now();
 
 		ROS_INFO("VisualServoing: Starting Blob Detection");
@@ -130,6 +132,7 @@ public:
 		 */
 		m_image_subscriber.shutdown();
 		base_velocities_publisher.shutdown();
+		m_sub_joint_states.shutdown();
 
 		// Shut down any open windows.
 		cvDestroyAllWindows();
@@ -150,6 +153,7 @@ public:
 		 */
 		m_image_subscriber.shutdown();
 		base_velocities_publisher.shutdown();
+		m_sub_joint_states.shutdown();
 
 		// Shut down any open windows.
 		cvDestroyAllWindows();
@@ -174,8 +178,6 @@ private:
 		ROS_ASSERT(parameter_list[i].getType() == XmlRpc::XmlRpcValue::TypeString);
 		m_arm_joint_names.push_back(static_cast<std::string>(parameter_list[i]));
 	  }
-
-	ROS_INFO_STREAM( "T! :" << m_arm_joint_names.size() ); 
 
 	  //read joint limits
 	  for(unsigned int i=0; i < m_arm_joint_names.size(); ++i)
@@ -217,20 +219,16 @@ private:
    */
   void jointstateCallback( sensor_msgs::JointStateConstPtr joints )
   {
-  	for (unsigned i = 0; i < joints->position.size(); i++) {
+		for (unsigned i = 0; i < joints->position.size(); i++)
+		{
+			if( i == 4 )
+			{
+				ROS_DEBUG_STREAM( "Joint Name: " << joints->name[i].c_str() );
+				ROS_DEBUG_STREAM( "Updated Gripper Position: " << joints->position[i] );
+				m_visual_servoing->UpdateGripperPosition( joints->position[i] );
+			}
 
-  		const char* joint_uri = joints->name[i].c_str();
-
-  		for (unsigned int j = 0; j < m_arm_chain.getNrOfJoints(); j++) {
-  			const char* chainjoint =
-  					m_arm_chain.getSegment(j).getJoint().getName().c_str();
-
-  			if (chainjoint != 0 && strcmp(chainjoint, joint_uri) == 0) {
-  				m_joint_positions.data[j] = joints->position[i];
-  				m_joint_positions_initialized[j] = true;
-  			}
-  		}
-  	}
+		}
   }
 
   /**
@@ -293,7 +291,7 @@ protected:
 
   bool 												m_is_visual_servoing_completed;
 
-  const static int 									m_visual_servoing_timeout = 30;
+  const static int 									m_visual_servoing_timeout = 15;
 
   KDL::Chain 										m_arm_chain;
 };
