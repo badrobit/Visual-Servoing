@@ -82,7 +82,7 @@ public:
 	bool do_visual_servoing( raw_srvs::DoVisualServoing::Request &req,
 							 raw_srvs::DoVisualServoing::Response &res )
 	{
-		m_is_visual_servoing_completed = false;
+		m_is_visual_servoing_completed = 0;
 
 		//  Incoming message from raw_usbs_cam. This must be running in order for this ROS node to run.
 		m_image_subscriber = image_transporter.subscribe( "/usb_cam/image_raw", 1, &raw_visual_servoing::imageCallback, this );
@@ -102,40 +102,39 @@ public:
 
 		ROS_INFO("VisualServoing: Starting Blob Detection");
 
-		while( ( m_is_visual_servoing_completed == false ) && ros::ok() && ( (ros::Time::now() - start_time).toSec() < m_visual_servoing_timeout ) )
+		while( ( m_is_visual_servoing_completed == 0 ) && ros::ok() && ( (ros::Time::now() - start_time).toSec() < m_visual_servoing_timeout ) )
 		{
-			//ROS_INFO( "Timeout: %f", ros::Time::now() - start_time  );
 			ros::spinOnce();
+		}
+
+		/**
+		 * TODO: set visual servoing output to an enumeration.
+		 */
+		if( m_is_visual_servoing_completed == 2 )
+		{
+			ShutDown();
+			ROS_ERROR( "Visual servoing failure due to lost object" );
+			res.return_value.error_code = raw_msgs::VisualServoing::LOST_OBJ;
+		}
+		else if( m_is_visual_servoing_completed == 3 )
+		{
+			ShutDown();
+			ROS_ERROR( "Visual servoing failure due to general unrecoverable error" );
+			res.return_value.error_code = raw_msgs::VisualServoing::FAILED;
 		}
 
 		if( (ros::Time::now() - start_time).toSec() < m_visual_servoing_timeout )
 		{
+			ShutDown();
 			ROS_INFO( "Visual Servoing Sucessful." );
 			res.return_value.error_code = raw_msgs::VisualServoing::SUCCESS;
-			geometry_msgs::Twist zero_vel;
-			base_velocities_publisher.publish(zero_vel);
 		}
 		else
 		{
+			ShutDown();
 			ROS_ERROR( "Visual Servoing Failure due to Timeout" );
-			/**
-			 * TODO: modify output to failure due to timeout.
-			 */
 			res.return_value.error_code = raw_msgs::VisualServoing::TIMEOUT;
-			geometry_msgs::Twist zero_vel;
-			base_velocities_publisher.publish(zero_vel);
 		}
-
-		/*
-		 * Shut down all subscribers and publishers as we have completed the task and do not need
-		 * them up and running anymore.
-		 */
-		m_image_subscriber.shutdown();
-		base_velocities_publisher.shutdown();
-		m_sub_joint_states.shutdown();
-
-		// Shut down any open windows.
-		cvDestroyAllWindows();
 
 		return true;
 	}
@@ -147,17 +146,7 @@ public:
 	 */
 	bool stop(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 	{
-		/*
-		 * Shut down all subscribers and publishers as we have completed the task and do not need
-		 * them up and running anymore.
-		 */
-		m_image_subscriber.shutdown();
-		base_velocities_publisher.shutdown();
-		m_sub_joint_states.shutdown();
-
-		// Shut down any open windows.
-		cvDestroyAllWindows();
-
+		ShutDown();
 		ROS_INFO( "Blob Detection Disabled" );
 		return true;
 	}
@@ -211,7 +200,6 @@ private:
   		}
 
  		m_is_visual_servoing_completed = m_visual_servoing->VisualServoing( cv_image );
-		//m_is_visual_servoing_completed = checkLimits( m_joint_positions );
   	}
 
   /**
@@ -266,6 +254,28 @@ private:
 	  return true;
   }
 
+  /**
+   * This is a function that takes care of zeroing and shutting down any ROS publishers and
+   * subscribers that the current class or any of its instantiated classes have created.
+   */
+  void ShutDown()
+  {
+	  // Zero all publishers
+	  geometry_msgs::Twist zero_vel;
+	  base_velocities_publisher.publish(zero_vel);
+
+	  // Destroy visual servoing publishers
+	  m_visual_servoing->DestroyPublishers();
+
+	  // shutdown any subscribers and publishers
+	  m_image_subscriber.shutdown();
+	  base_velocities_publisher.shutdown();
+	  m_sub_joint_states.shutdown();
+
+	  // Shut down any open windows.
+	  cvDestroyAllWindows();
+  }
+
 protected:
 
   VisualServoing2D*									m_visual_servoing;
@@ -289,7 +299,7 @@ protected:
 
   ros::ServiceServer 								service_do_visual_serv;
 
-  bool 												m_is_visual_servoing_completed;
+  int 												m_is_visual_servoing_completed;
 
   const static int 									m_visual_servoing_timeout = 15;
 

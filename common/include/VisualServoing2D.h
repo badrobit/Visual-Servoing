@@ -56,9 +56,19 @@ public:
 	/**
 	 * This function takes in a provided image and performs visual servoing on
 	 * the provided image. This
+	 *
+	 * Return Values:
+	 * 0 - Still running
+	 * 1 - Success
+	 * 2 - Blob lost timeout
+	 * 3 - General Failure
 	 */
-	bool VisualServoing( IplImage* input_image );
+	int VisualServoing( IplImage* input_image );
 
+	/**
+	 * Setter function which allows the visual servoing application to pass down updated gripper
+	 * positions so that we can use them in future computations.
+	 */
 	void UpdateGripperPosition( float new_position );
 
 	/**
@@ -71,6 +81,12 @@ public:
 	 * 2 - KUKA Lightweight Arm.
 	 */
 	void CreatePublishers( int arm_model );
+
+	/**
+	 * A general function that will properly zero and close and publishers or subscribers that are
+	 * being used by the VisualServoing2D mode of operation.
+	 */
+	void DestroyPublishers();
 
 private:
 
@@ -149,6 +165,10 @@ protected:
 	ros::Publisher 									m_base_velocities_publisher;
 	ros::Publisher 									m_arm_velocities_publisher;
 	ros::NodeHandle 								m_node_handler;
+
+	bool											m_is_blob_lost;
+	ros::Time 										m_time_when_lost;
+	const static int								m_lost_blob_timeout = 3;
 
 	ros::ServiceClient  							m_safe_cmd_vel_service;
 	hbrs_srvs::ReturnBool							m_service_msg;
