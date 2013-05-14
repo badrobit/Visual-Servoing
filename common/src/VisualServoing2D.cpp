@@ -16,6 +16,7 @@ VisualServoing2D::VisualServoing2D( bool debugging,
 	g_operating_mode = mode;
 
 	m_first_pass = true;
+	m_is_blob_lost = false;
 	m_done_base_x_adjustment = true;
 	m_done_base_y_adjustment = true;
 	m_done_arm_rot_adjustment = true;
@@ -56,10 +57,10 @@ VisualServoing2D::~VisualServoing2D()
 	cvDestroyWindow( "Background Image" );
 }
 
-bool
+int
 VisualServoing2D::VisualServoing( IplImage* input_image )
 {
-	bool return_val = false; 
+	bool return_val = 0;
 
 	double x_offset = 0;
 	double y_offset = 0;
@@ -87,6 +88,17 @@ VisualServoing2D::VisualServoing( IplImage* input_image )
 	{
 		ROS_ERROR( "Error in input image!" );
 		return false;
+	}
+
+	/**
+	 * We now need to check and see if we have been lost for longer than the lost timeout.
+	 */
+	if( m_is_blob_lost )
+	{
+		if( ( ros::Time::now() - m_time_when_lost ).toSec() < m_lost_blob_timeout )
+		{
+			return 2;
+		}
 	}
 
 	/**
@@ -125,15 +137,9 @@ g only at a region of interest instead of the whole image.
 	cvSmooth( gray, gray, CV_GAUSSIAN, 11, 11 );
 	cvThreshold( gray, gray, 50, 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU );
 
-	//cvShowImage( "BACKGROUND THRESHOLD", background_threshold );
-	//cvShowImage( "GRAY", gray );
-
 	//    This takes a background image (the gripper on a white background) and removes
 	//  it from the current image (cv_image). The results are stored again in cv_image.
 	cvSub( gray, background_threshold, gray );
-	//cvShowImage( "SUB", gray );
-
-	//HUD("b-it-bots Visual Servoing", 2, background_threshold, gray );
 
 	// Find any blobs that are not white.
 	CBlobResult blobs = CBlobResult( gray, NULL, 0 );
@@ -157,6 +163,17 @@ g only at a region of interest instead of the whole image.
 	  m_tracked_y = ( ( miny + maxy ) / 2 );
 
 	  m_first_pass = false;
+	}
+
+	if( blobs.GetNumBlobs() == 0 )
+	{
+		ROS_WARN( "We have lost the blob" );
+		m_time_when_lost = ros::Time::now();
+		m_is_blob_lost = true;
+	}
+	else
+	{
+		m_is_blob_lost = false;
 	}
 
 	//  Go through all of the blobs and find the one that is the closest to the previously tracked blob.
@@ -239,17 +256,8 @@ g only at a region of interest instead of the whole image.
 
 	if( done_x && done_y && done_t )
 	{
-		return_val = true;
-		geometry_msgs::Twist zero_vel;
-		m_base_velocities_publisher.publish(zero_vel);
-		m_base_velocities_publisher.shutdown();
-		ROS_INFO( "Base velocity publisher zeroed and shutdown" );
-
-		brics_actuator::JointVelocities zero_arm_vel;
-		m_arm_velocities_publisher.publish( zero_arm_vel );
-		m_arm_velocities_publisher.shutdown();
-		ROS_INFO( "Arm velcoity publisher zeroed and shutdown" );
-
+		return_val = 1;
+		DestroyPublishers();
 		ROS_INFO( "Visual Servoing Completed." );
 	}
 
@@ -699,6 +707,26 @@ VisualServoing2D::CreatePublishers( int arm_model )
 	{
 		ROS_ERROR( "Unkown robotic arm model provided" );
 	}
+}
+
+void
+VisualServoing2D::DestroyPublishers()
+{
+	/**
+	 * Zero and shutdown the base velcoity publisher.
+	 */
+	geometry_msgs::Twist zero_vel;
+	m_base_velocities_publisher.publish(zero_vel);
+	m_base_velocities_publisher.shutdown();
+	ROS_INFO( "Base velocity publisher zeroed and shutdown" );
+
+	/**
+	 * Zero and shutdown the arm velocity publisher.
+	 */
+	brics_actuator::JointVelocities zero_arm_vel;
+	m_arm_velocities_publisher.publish( zero_arm_vel );
+	m_arm_velocities_publisher.shutdown();
+	ROS_INFO( "Arm velcoity publisher zeroed and shutdown" );
 }
 
 void
