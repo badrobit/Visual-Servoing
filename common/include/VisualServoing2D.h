@@ -10,6 +10,9 @@
 #include <brics_actuator/JointVelocities.h>
 #include <brics_actuator/JointPositions.h>
 
+#include <dynamic_reconfigure/server.h>
+#include <raw_visual_servoing/VisualServoingConfig.h>
+
 // OpenCV Includes
 #include <image_transport/image_transport.h>
 #include <cv_bridge/CvBridge.h>
@@ -70,6 +73,8 @@ public:
 	 * positions so that we can use them in future computations.
 	 */
 	void UpdateGripperPosition( float new_position );
+
+	void UpdateDynamicVariables( raw_visual_servoing::VisualServoingConfig config );
 
 	/**
 	 * This function creates the publishers that will publish velcities for both the robotic base
@@ -174,6 +179,8 @@ protected:
 	hbrs_srvs::ReturnBool							m_service_msg;
 
 	IplImage* 										m_background_image;
+
+	raw_visual_servoing::VisualServoingConfig		m_dynamic_variables;
 
 	/*
 	 * Constant values.
