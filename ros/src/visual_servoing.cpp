@@ -34,7 +34,7 @@
  * This is the ROS Node for the visual servoing application. It will get all of the ROS dependent
  * attributes and determine which library should be run 2D or 3D visual servoing.
  */
-class raw_visual_servoing 
+class VisualServoing 
 {
 public:
 	/**
@@ -42,7 +42,7 @@ public:
 	 * the visual seroving service so that the process can be started and stopped on command. If you
 	 * want to start the visual servoing you need to run the do_visual_servoing service hook.
 	 */
-	raw_visual_servoing( ros::NodeHandle &n ) : m_node_handler( n ),
+	VisualServoing( ros::NodeHandle &n ) : m_node_handler( n ),
 												image_transporter( n )
 	{
 		ros::NodeHandle temp( "~" );
@@ -60,10 +60,11 @@ public:
 												  0,
 												  safe_cmd_vel_service,
 												  m_arm_joint_names );
-
+ 
+		m_dynamic_reconfigre_subscriber.setCallback(boost::bind( &VisualServoing::dynamic_reconfig_callback, this, _1, _2 ) );
 
 		// Service commands to allow this node to be started and stopped externally
-		service_do_visual_serv = m_node_handler.advertiseService( "do_visual_servoing", &raw_visual_servoing::do_visual_servoing, this );
+		service_do_visual_serv = m_node_handler.advertiseService( "do_visual_servoing", &VisualServoing::do_visual_servoing, this );
 		ROS_INFO( "Advertised 'do_visual_servoing' service for raw_visual_servoing" );
 		ROS_INFO( "Visual servoing node initialized." );
 	}
@@ -71,7 +72,7 @@ public:
 	/**
 	 * Standard destructor.
 	 */
-	~raw_visual_servoing()
+	~VisualServoing()
 	{
 	}
 
@@ -85,11 +86,11 @@ public:
 		m_is_visual_servoing_completed = 0;
 
 		//  Incoming message from raw_usbs_cam. This must be running in order for this ROS node to run.
-		m_image_subscriber = image_transporter.subscribe( "/usb_cam/image_raw", 1, &raw_visual_servoing::imageCallback, this );
+		m_image_subscriber = image_transporter.subscribe( "/usb_cam/image_raw", 1, &VisualServoing::imageCallback, this );
 
 		// get joint states and store them to a variable and go through them (arm_link_5) and check to see if the current state is
 		// to close to the min or max value.
-		m_sub_joint_states = m_node_handler.subscribe( "/joint_states", 1, &raw_visual_servoing::jointstateCallback, this );
+		m_sub_joint_states = m_node_handler.subscribe( "/joint_states", 1, &VisualServoing::jointstateCallback, this );
 
 		safe_cmd_vel_service = m_node_handler.serviceClient<hbrs_srvs::ReturnBool>("/is_robot_to_close_to_obstacle");
 
@@ -115,12 +116,14 @@ public:
 			ShutDown();
 			ROS_ERROR( "Visual servoing failure due to lost object" );
 			res.return_value.error_code = raw_msgs::VisualServoing::LOST_OBJ;
+			return true;
 		}
 		else if( m_is_visual_servoing_completed == 3 )
 		{
 			ShutDown();
 			ROS_ERROR( "Visual servoing failure due to general unrecoverable error" );
 			res.return_value.error_code = raw_msgs::VisualServoing::FAILED;
+			return true;
 		}
 
 		if( (ros::Time::now() - start_time).toSec() < m_visual_servoing_timeout )
@@ -128,15 +131,17 @@ public:
 			ShutDown();
 			ROS_INFO( "Visual Servoing Sucessful." );
 			res.return_value.error_code = raw_msgs::VisualServoing::SUCCESS;
+			return true;
 		}
 		else
 		{
 			ShutDown();
 			ROS_ERROR( "Visual Servoing Failure due to Timeout" );
 			res.return_value.error_code = raw_msgs::VisualServoing::TIMEOUT;
+			return true;
 		}
 
-		return true;
+		return false;
 	}
 
 	/**
@@ -219,6 +224,12 @@ private:
 		}
   }
 
+  void dynamic_reconfig_callback(raw_visual_servoing::VisualServoingConfig &config, uint32_t level) 
+  {
+  		ROS_DEBUG_STREAM( "New Var: " << config.binary_threshold ); 
+	    m_visual_servoing->UpdateDynamicVariables( config );    
+	}
+
   /**
    * This function is used to determine if the joint limits of the robotic arm being used by the
    * robot are about to be exceeded. If they are near the "soft limit" (5% before the hard limit)
@@ -291,6 +302,8 @@ protected:
   ros::Subscriber 									m_sub_joint_states;
   image_transport::Subscriber 						m_image_subscriber;
 
+  dynamic_reconfigure::Server<raw_visual_servoing::VisualServoingConfig> m_dynamic_reconfigre_subscriber; 
+
   std::vector<std::string> 							m_arm_joint_names;
   std::vector<double> 								m_upper_joint_limits;
   std::vector<double> 								m_lower_joint_limits;
@@ -314,7 +327,7 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, "image_listener");
   ros::NodeHandle n;
-  raw_visual_servoing ic(n);
+  VisualServoing ic(n);
   ros::spin();
   return 0;
 }

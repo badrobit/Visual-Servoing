@@ -22,6 +22,7 @@
   <depend package="kdl_parser"/>
   <depend package="raw_srvs"/>
   <depend package="raw_msgs"/>
+  <depend package="dynamic_reconfigure"/>
 
   <depend package="cvblobs"/>
 

@@ -128,18 +128,22 @@ g only at a region of interest instead of the whole image.
 	IplImage* background_threshold = cvCreateImage( cvGetSize( m_background_image ), 8, 1 );
 	cvCvtColor( m_background_image, background_threshold, CV_BGR2GRAY );
 	cvSmooth( background_threshold, background_threshold, CV_GAUSSIAN, 11, 11 );
-	cvThreshold( background_threshold, background_threshold, 50, 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU );
+	cvThreshold( background_threshold, background_threshold, m_dynamic_variables.binary_threshold , 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU );
 
 	blob_image = cvCreateImage( cvGetSize( cv_image ), IPL_DEPTH_8U, cv_image->nChannels );
 
 	IplImage* gray = cvCreateImage( cvGetSize( cv_image ), 8, 1 );
 	cvCvtColor( cv_image, gray, CV_BGR2GRAY );
 	cvSmooth( gray, gray, CV_GAUSSIAN, 11, 11 );
-	cvThreshold( gray, gray, 50, 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU );
+
+	ROS_WARN_STREAM( "Dynamic Var: " << m_dynamic_variables.binary_threshold ); 
+	cvThreshold( gray, gray, m_dynamic_variables.binary_threshold, 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU );
 
 	//    This takes a background image (the gripper on a white background) and removes
 	//  it from the current image (cv_image). The results are stored again in cv_image.
 	cvSub( gray, background_threshold, gray );
+
+	cvShowImage( "GRAY", gray ); 
 
 	// Find any blobs that are not white.
 	CBlobResult blobs = CBlobResult( gray, NULL, 0 );
@@ -848,4 +852,10 @@ VisualServoing2D::HUD(char* title, int nArgs, ...) {
 
     // Release the Image Memory
     //cvReleaseImage(&DispImage);
+}
+
+void 
+VisualServoing2D::UpdateDynamicVariables( raw_visual_servoing::VisualServoingConfig config )
+{
+	m_dynamic_variables = config; 
 }
