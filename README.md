@@ -16,7 +16,10 @@ ROS dependancies:
 
 NOTE: Requires "raw_usb_cam" to be running in order to work.
 
-## Output
+## State Machine Output
+
+The following is the output in `byte` that tells the calling state machine what the status of the visual servoing application is.
+
 `SUCCESS = 0`
 `FAILED = -1`
 `TIMEOUT = -2`
