@@ -8,10 +8,16 @@ ROS dependancies:
 
 Building: 
 
-$ rosmake raw_visual_servoing
+`$ rosmake raw_visual_servoing`
 
 Running: 
 
-$ roslaunch raw_visual_servoing raw_visual_servoing.launch
+`$ roslaunch raw_visual_servoing raw_visual_servoing.launch`
 
 NOTE: Requires "raw_usb_cam" to be running in order to work.
+
+## Output ##
+`SUCCESS = 0`
+`FAILED = -1`
+`TIMEOUT = -2`
+`LOST_OBJ = -3`
