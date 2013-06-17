@@ -16,7 +16,7 @@ ROS dependancies:
 
 NOTE: Requires "raw_usb_cam" to be running in order to work.
 
-## Status Output:
+## Output
 `SUCCESS = 0`
 `FAILED = -1`
 `TIMEOUT = -2`
