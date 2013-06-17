@@ -18,6 +18,7 @@
 #include <kdl/chainiksolvervel_wdls.hpp>
 
 #include <std_srvs/Empty.h>
+#include "std_msgs/String.h"
 #include <hbrs_srvs/ReturnBool.h>
 #include <raw_srvs/DoVisualServoing.h>
 #include <raw_msgs/VisualServoing.h>
@@ -96,6 +97,8 @@ public:
 
 		// Velocity control for the YouBot base.
 		base_velocities_publisher = m_node_handler.advertise<geometry_msgs::Twist>( "/cmd_vel_safe", 1 );
+
+
 
 		m_visual_servoing->CreatePublishers( 1 );
 
@@ -299,6 +302,7 @@ protected:
   ros::ServiceClient  								safe_cmd_vel_service;
   image_transport::ImageTransport 					image_transporter;
   ros::Publisher								 	base_velocities_publisher;
+
   ros::Subscriber 									m_sub_joint_states;
   image_transport::Subscriber 						m_image_subscriber;
 

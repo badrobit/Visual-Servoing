@@ -22,6 +22,8 @@
 // cvBlobsLib Includes.
 #include <BlobResult.h>
 
+#include "std_msgs/String.h"
+
 // BOOST
 #include <boost/units/systems/si.hpp>
 #include <string>
@@ -169,6 +171,7 @@ protected:
 
 	ros::Publisher 									m_base_velocities_publisher;
 	ros::Publisher 									m_arm_velocities_publisher;
+	  ros::Publisher									m_pub_visual_servoing_status;
 	ros::NodeHandle 								m_node_handler;
 
 	bool											m_is_blob_lost;

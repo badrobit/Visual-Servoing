@@ -169,16 +169,27 @@ g only at a region of interest instead of the whole image.
 	  m_first_pass = false;
 	}
 
+	std_msgs::String msg;
 	if( blobs.GetNumBlobs() == 0 )
 	{
+		std::stringstream ss;
+		ss << "NOT FOUND";
+		msg.data = ss.str();
+
 		ROS_WARN( "We have lost the blob" );
 		m_time_when_lost = ros::Time::now();
 		m_is_blob_lost = true;
 	}
 	else
 	{
+		std::stringstream ss;
+		ss << "FOUND";
+		msg.data = ss.str();
+
 		m_is_blob_lost = false;
 	}
+
+	m_pub_visual_servoing_status.publish( msg );
 
 	//  Go through all of the blobs and find the one that is the closest to the previously tracked blob.
 	for( int x = 0; x < blobs.GetNumBlobs(); x++ )
@@ -693,6 +704,9 @@ VisualServoing2D::CreatePublishers( int arm_model )
 	// Set up the base velocities publisher:
 	m_base_velocities_publisher = m_node_handler.advertise<geometry_msgs::Twist>( "/cmd_vel", 1 );
 	ROS_INFO( "Robot Base Publisher Setup" );
+
+	m_pub_visual_servoing_status = m_node_handler.advertise<std_msgs::String>( "/visual_servoing_status", 1 );
+	ROS_INFO( "VISUAL SERVOING STATUS PUBLSHING" );
 
 	if( arm_model == 0 )
 	{
