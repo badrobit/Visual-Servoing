@@ -6,12 +6,18 @@ ROS dependancies:
 [arm_navigation_msgs] http://ros.org/wiki/arm_navigation
 [brics_actuator] http://www.ros.org/wiki/cob_common
 
-Building: 
+## Building: 
 
-$ rosmake raw_visual_servoing
+`$ rosmake raw_visual_servoing`
 
-Running: 
+## Running: 
 
-$ roslaunch raw_visual_servoing raw_visual_servoing.launch
+`$ roslaunch raw_visual_servoing raw_visual_servoing.launch`
 
 NOTE: Requires "raw_usb_cam" to be running in order to work.
+
+## Status Output:
+`SUCCESS = 0`
+`FAILED = -1`
+`TIMEOUT = -2`
+`LOST_OBJ = -3`
