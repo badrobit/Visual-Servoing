@@ -57,7 +57,7 @@ public:
 
 		SetupYoubotArm();
 
-		m_visual_servoing = new VisualServoing2D( true,
+		m_visual_servoing = new VisualServoing2D( false,
 												  0,
 												  safe_cmd_vel_service,
 												  m_arm_joint_names );
