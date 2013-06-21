@@ -8,5 +8,5 @@
         <param name="image_height"  value="480" />
     </node>
 
-    <node pkg="raw_visual_servoing" type="visual_servoing_node" name="raw_visual_servoing" ns="raw_visual_servoing" respawn="true" output="log" launch-prefix="gdb -ex run --args"/>
+    <node pkg="raw_visual_servoing" type="visual_servoing_node" name="raw_visual_servoing" ns="raw_visual_servoing" respawn="true" output="screen" launch-prefix="gdb -ex run --args"/>
 </launch>
