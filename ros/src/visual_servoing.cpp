@@ -43,24 +43,13 @@ public:
 	 * the visual seroving service so that the process can be started and stopped on command. If you
 	 * want to start the visual servoing you need to run the do_visual_servoing service hook.
 	 */
-	VisualServoing( ros::NodeHandle &n ) : m_node_handler( n ),
-												image_transporter( n )
+	VisualServoing( ros::NodeHandle &n ) : m_node_handler( n ), image_transporter( n )
 	{
 		ros::NodeHandle temp( "~" );
 
-		int mode = 0;
-
-		 if( temp.getParam("operating_mode", mode) == false)
-		 {
-			 ROS_WARN("Parameter \"operating_mode\" not available on parameter server, use default value: %d ", mode);
-		 }
-
 		SetupYoubotArm();
 
-		m_visual_servoing = new VisualServoing2D( true,
-												  0,
-												  safe_cmd_vel_service,
-												  m_arm_joint_names );
+		m_visual_servoing = new VisualServoing2D( false, 0, safe_cmd_vel_service, m_arm_joint_names );
  
 		m_dynamic_reconfigre_subscriber.setCallback(boost::bind( &VisualServoing::dynamic_reconfig_callback, this, _1, _2 ) );
 
@@ -97,8 +86,6 @@ public:
 
 		// Velocity control for the YouBot base.
 		base_velocities_publisher = m_node_handler.advertise<geometry_msgs::Twist>( "/cmd_vel_safe", 1 );
-
-
 
 		m_visual_servoing->CreatePublishers( 1 );
 
