@@ -55,6 +55,8 @@ VisualServoing2D::~VisualServoing2D()
 	cvDestroyWindow( "Thresholding" );
 	cvDestroyWindow( "Found Blobs" );
 	cvDestroyWindow( "Background Image" );
+
+	DestroyPublishers();
 }
 
 int
@@ -734,7 +736,7 @@ VisualServoing2D::DestroyPublishers()
 	 * Zero and shutdown the base velcoity publisher.
 	 */
 	geometry_msgs::Twist zero_vel;
-	m_base_velocities_publisher.publish(zero_vel);
+	m_base_velocities_publisher.publish( zero_vel );
 	m_base_velocities_publisher.shutdown();
 	ROS_INFO( "Base velocity publisher zeroed and shutdown" );
 
