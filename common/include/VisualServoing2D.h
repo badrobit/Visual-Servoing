@@ -15,7 +15,7 @@
 
 // OpenCV Includes
 #include <image_transport/image_transport.h>
-#include <cv_bridge/CvBridge.h>
+#include <cv_bridge/cv_bridge.h>
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 
@@ -191,15 +191,15 @@ protected:
 	const static int								m_min_blob_area = 2000;
 	const static int								m_max_blob_area = 90000;
 	const static int 								m_verticle_offset = 0;
-	const static double 							m_x_velocity = 0.012;
-	const static double 							m_y_velocity = 0.012;
-	const static double 							m_rot_velocity = 0.25;
+	const static double 							m_x_velocity = 0.015;
+	const static double 							m_y_velocity = 0.015;
+	const static double 							m_rot_velocity = 0.3;
 
 	const static int								m_x_target = 0;
-	const static int 								m_x_threshold = 30;
+	const static int 								m_x_threshold = 20;
 
 	const static int								m_y_target = 0;
-	const static int 								m_y_threshold = 40;
+	const static int 								m_y_threshold = 30;
 
 	const static int								m_rot_target = 90;
 	const static int								m_rot_tolerance = 5;

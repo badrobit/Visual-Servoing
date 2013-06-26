@@ -8,28 +8,35 @@
  *
  * Author: Matthew Roscoe (mat.roscoe@unb.ca)
  */
+
+// ROS
 #include <ros/ros.h>
-#include <image_transport/image_transport.h>
+#include <std_srvs/Empty.h>
+#include "std_msgs/String.h"
+#include "geometry_msgs/Twist.h"
+#include <sensor_msgs/JointState.h>
+
+
+// OpenCV
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 #include <cv_bridge/CvBridge.h>
-#include <sensor_msgs/JointState.h>
+#include <image_transport/image_transport.h>
+#include <sensor_msgs/image_encodings.h>
+
+// ARM STUFF
 #include <kdl/kdl.hpp>
 #include <kdl/chainiksolvervel_wdls.hpp>
-
-#include <std_srvs/Empty.h>
-#include "std_msgs/String.h"
 #include <hbrs_srvs/ReturnBool.h>
 #include <raw_srvs/DoVisualServoing.h>
 #include <raw_msgs/VisualServoing.h>
-
 #include <arm_navigation_msgs/JointLimits.h>
 #include <brics_actuator/JointVelocities.h>
 #include <brics_actuator/JointPositions.h>
 
-#include "geometry_msgs/Twist.h"
-
 #include "VisualServoing2D.h"
+
+namespace enc = sensor_msgs::image_encodings;
 
 /**
  * This is the ROS Node for the visual servoing application. It will get all of the ROS dependent
@@ -43,9 +50,11 @@ public:
 	 * the visual seroving service so that the process can be started and stopped on command. If you
 	 * want to start the visual servoing you need to run the do_visual_servoing service hook.
 	 */
-	VisualServoing( ros::NodeHandle &n ) : m_node_handler( n ), image_transporter( n )
+	VisualServoing( ): m_image_transporter( m_node_handler )
 	{
 		ros::NodeHandle temp( "~" );
+
+		safe_cmd_vel_service = m_node_handler.serviceClient<hbrs_srvs::ReturnBool>("/is_robot_to_close_to_obstacle");
 
 		SetupYoubotArm();
 
@@ -76,13 +85,11 @@ public:
 		m_is_visual_servoing_completed = 0;
 
 		//  Incoming message from raw_usbs_cam. This must be running in order for this ROS node to run.
-		m_image_subscriber = image_transporter.subscribe( "/usb_cam/image_raw", 1, &VisualServoing::imageCallback, this );
+		m_image_subscriber = m_image_transporter.subscribe( "/usb_cam/image_raw", 1, &VisualServoing::imageCallback, this );
 
 		// get joint states and store them to a variable and go through them (arm_link_5) and check to see if the current state is
 		// to close to the min or max value.
 		m_sub_joint_states = m_node_handler.subscribe( "/joint_states", 1, &VisualServoing::jointstateCallback, this );
-
-		safe_cmd_vel_service = m_node_handler.serviceClient<hbrs_srvs::ReturnBool>("/is_robot_to_close_to_obstacle");
 
 		// Velocity control for the YouBot base.
 		base_velocities_publisher = m_node_handler.advertise<geometry_msgs::Twist>( "/cmd_vel_safe", 1 );
@@ -182,9 +189,24 @@ private:
    */
   void imageCallback( const sensor_msgs::ImageConstPtr& image_message )
   	{
-  		sensor_msgs::CvBridge bridge;
   		IplImage *cv_image = NULL;
+  		
+  		/**
+  		cv_bridge::CvImagePtr cv_ptr;
 
+		try
+		{
+			//cv_ptr = cv_bridge::toCvCopy( image_message, enc::BGR8 );
+			cv_image = sensor_msgs::CvBridge::imgMsgToCv( image_message, enc::BGR8 ); 
+		}
+		catch( cv_bridge::Exception& e )
+		{
+			ROS_ERROR("cv_bridge exception: %s", e.what());
+		}
+		//cv_image = cv_ptr->image;
+
+		*/
+		sensor_msgs::CvBridge bridge;
   		try
   		{
   			cv_image = bridge.imgMsgToCv( image_message, "bgr8" );
@@ -278,13 +300,12 @@ protected:
 
   VisualServoing2D*									m_visual_servoing;
 
-  ros::NodeHandle 									m_node_handler;
-
   /*
    * Standard ROS Publishers and Subscribers.
    */
   ros::ServiceClient  								safe_cmd_vel_service;
-  image_transport::ImageTransport 					image_transporter;
+  ros::NodeHandle 									m_node_handler; 
+  image_transport::ImageTransport 					m_image_transporter;
   ros::Publisher								 	base_velocities_publisher;
 
   ros::Subscriber 									m_sub_joint_states;
@@ -313,9 +334,8 @@ protected:
  */
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "image_listener");
-  ros::NodeHandle n;
-  VisualServoing ic(n);
+  ros::init(argc, argv, "raw_visual_servoing");
+  VisualServoing ic;
   ros::spin();
   return 0;
 }
