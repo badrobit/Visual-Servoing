@@ -54,11 +54,9 @@ public:
 	{
 		ros::NodeHandle temp( "~" );
 
-		safe_cmd_vel_service = m_node_handler.serviceClient<hbrs_srvs::ReturnBool>("/is_robot_to_close_to_obstacle");
-
 		SetupYoubotArm();
 
-		m_visual_servoing = new VisualServoing2D( false, 0, safe_cmd_vel_service, m_arm_joint_names );
+		m_visual_servoing = new VisualServoing2D( false, 0, m_arm_joint_names );
  
 		m_dynamic_reconfigre_subscriber.setCallback(boost::bind( &VisualServoing::dynamic_reconfig_callback, this, _1, _2 ) );
 
@@ -303,7 +301,6 @@ protected:
   /*
    * Standard ROS Publishers and Subscribers.
    */
-  ros::ServiceClient  								safe_cmd_vel_service;
   ros::NodeHandle 									m_node_handler; 
   image_transport::ImageTransport 					m_image_transporter;
   ros::Publisher								 	base_velocities_publisher;

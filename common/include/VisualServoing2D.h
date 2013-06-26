@@ -51,7 +51,6 @@ public:
 	 */
 	VisualServoing2D( bool debugging,
 					  int mode,
-					  ros::ServiceClient safe_cmd_vel_service,
 					  std::vector<std::string> arm_joint_names );
 	/**
 	 * Standard C++ destructor method.

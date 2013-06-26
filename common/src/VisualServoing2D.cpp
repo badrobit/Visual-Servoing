@@ -9,7 +9,6 @@
 
 VisualServoing2D::VisualServoing2D( bool debugging,
 									int mode,
-									ros::ServiceClient safe_cmd_vel_service,
 									std::vector<std::string> arm_joint_names )
 {
 	g_debugging = debugging;
@@ -29,7 +28,7 @@ VisualServoing2D::VisualServoing2D( bool debugging,
 
 	m_arm_joint_names = arm_joint_names;
 
-	m_safe_cmd_vel_service = safe_cmd_vel_service;
+	m_safe_cmd_vel_service = m_node_handler.serviceClient<hbrs_srvs::ReturnBool>("/is_robot_to_close_to_obstacle");
 
 	if( g_debugging )
 	{
