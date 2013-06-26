@@ -199,7 +199,7 @@ protected:
 	const static int 								m_x_threshold = 20;
 
 	const static int								m_y_target = 0;
-	const static int 								m_y_threshold = 30;
+	const static int 								m_y_threshold = 15;
 
 	const static int								m_rot_target = 90;
 	const static int								m_rot_tolerance = 5;
