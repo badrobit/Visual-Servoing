@@ -185,11 +185,11 @@ protected:
 	raw_visual_servoing::VisualServoingConfig		m_dynamic_variables;
 
 	/*
-	 * Constant values.
+	 * Constant values
 	 */
 	const static int								m_min_blob_area = 2000;
 	const static int								m_max_blob_area = 90000;
-	const static int 								m_verticle_offset = -5;
+	const static int 								m_verticle_offset = 3;
 	const static double 							m_x_velocity = 0.012;
 	const static double 							m_y_velocity = 0.012;
 	const static double 							m_rot_velocity = 0.3;
